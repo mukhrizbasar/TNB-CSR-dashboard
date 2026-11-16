@@ -68,7 +68,7 @@ Open the site, click **Sign in with Google** with an editor email. The list will
 |---|---|---|
 | Environment | Solar Rooftop & Streetlight, Tree for a Tree, Other environment projects | a project |
 | Economic Social | Sumbangan Kenderaan Terpakai, Perumahan Mesra Rakyat (PMR) | a vehicle donation, a house |
-| Education | Ceria Ke Sekolah, Sekolah Angkat JEK | a school |
+| Education | Ceria Ke Sekolah, Sekolah Angkat JEK | a school (Ceria), a contribution to an adopted school (JEK) |
 | Wakalah | Projek Baiti Jannati (PBJ) | a house |
 | Sports | Sekolah Hoki Angkat TNB | a school |
 
@@ -87,3 +87,11 @@ An editor opens the dashboard, clicks **Import list** and picks `pbj-pmr-seed.js
 - House pins are placed at the town or district, not the house. Open a house, click **Edit**, then **Pick on map** to set the exact spot.
 - Importing the same file twice is safe: houses already in the dashboard are skipped.
 
+
+## Importing the Sekolah Angkat JEK list (one time)
+An editor clicks **Import list** and picks `jek-seed.json` (sent separately). It holds 41 records from the "JEK List CSR" sheet, updated to 30 Oct 2026:
+- 35 contributions: RM 134,885 in 2025 and RM 211,040 in 2026, matching the sheet's totals.
+- 6 nominated schools with no contribution yet (status Planning). Two of them are still "TBC".
+- Each contribution keeps its JEK member, position, school and category (ED, ES, SP, ENV).
+- Contributions are set to **Approved** and **Not Paid**. Update them when they are paid or done.
+- School pins are placed at the town, not the school.
