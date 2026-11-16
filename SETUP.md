@@ -71,10 +71,10 @@ Open the site, click **Sign in with Google** with an editor email. The list will
 
 Each programme has its own form fields and statuses:
 - Environment: Site Visit, Pending Proposal, Pending Approval Memo, Approved, Ongoing, Completed.
-- PBJ and PMR: Application received, Approved, Vendor appointed, Under construction, Completed.
+- PBJ and PMR: Application received, Approved, Vendor appointed, Under construction, Completed, Rejected.
 - The others: Planning, Approved, Ongoing, Completed.
 
-The **Overview** and pillar views combine programmes, so they group statuses into four stages: In pipeline, Approved, In progress, Completed.
+The **Overview** and pillar views combine programmes, so they group statuses into stages: In pipeline, Approved, In progress, Completed (plus Rejected for PBJ and PMR).
 
 To add a record, open the programme and click **+ Add** (or pick the programme in the form). To bring in a list, open the programme first, then **Import list** with an Excel file that uses the same column names as that programme's export.
 

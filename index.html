@@ -12,7 +12,7 @@
 :root{
   --bg:#f4f6f5; --surface:#ffffff; --surface-2:#eef2f0; --line:#d9e0dc; --fg:#15211c; --muted:#5d6b64;
   --accent:#e59a12; --accent-ink:#7a4d00; --land:#e3e9e5; --land-line:#b9c5be; --sea:#dbe7ee;
-  --s-visit:#8a948f; --s-proposal:#e0a800; --s-memo:#e07a10; --s-approved:#3d7fd6; --s-ongoing:#2563c9; --s-done:#1f9d5c; --s-vendor:#7b5bd0;
+  --s-visit:#8a948f; --s-proposal:#e0a800; --s-memo:#e07a10; --s-approved:#3d7fd6; --s-ongoing:#2563c9; --s-done:#1f9d5c; --s-vendor:#7b5bd0; --s-rejected:#b94a48;
   --good:#1f9d5c; --bad:#cf3b3b;
   --f-display:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -22,12 +22,12 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f1513; --surface:#171f1c; --surface-2:#1e2824; --line:#2c3833; --fg:#e6ece9; --muted:#97a59e;
   --accent:#f2b13a; --accent-ink:#f6c866; --land:#24302b; --land-line:#3d4c45; --sea:#121b1f;
-  --s-visit:#8f9a95; --s-proposal:#e8b923; --s-memo:#f08c2e; --s-approved:#5b97e8; --s-ongoing:#4a86e8; --s-done:#35b673; --s-vendor:#a58bf0;
+  --s-visit:#8f9a95; --s-proposal:#e8b923; --s-memo:#f08c2e; --s-approved:#5b97e8; --s-ongoing:#4a86e8; --s-done:#35b673; --s-vendor:#a58bf0; --s-rejected:#e57373;
   --good:#35b673; --bad:#e86060; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f1513; --surface:#171f1c; --surface-2:#1e2824; --line:#2c3833; --fg:#e6ece9; --muted:#97a59e;
   --accent:#f2b13a; --accent-ink:#f6c866; --land:#24302b; --land-line:#3d4c45; --sea:#121b1f;
-  --s-visit:#8f9a95; --s-proposal:#e8b923; --s-memo:#f08c2e; --s-approved:#5b97e8; --s-ongoing:#4a86e8; --s-done:#35b673; --s-vendor:#a58bf0;
+  --s-visit:#8f9a95; --s-proposal:#e8b923; --s-memo:#f08c2e; --s-approved:#5b97e8; --s-ongoing:#4a86e8; --s-done:#35b673; --s-vendor:#a58bf0; --s-rejected:#e57373;
   --good:#35b673; --bad:#e86060; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
