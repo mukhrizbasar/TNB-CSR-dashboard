@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CSR Solar Projects 2026</title>
+<title>TNB CSR Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
@@ -12,7 +12,7 @@
 :root{
   --bg:#f4f6f5; --surface:#ffffff; --surface-2:#eef2f0; --line:#d9e0dc; --fg:#15211c; --muted:#5d6b64;
   --accent:#e59a12; --accent-ink:#7a4d00; --land:#e3e9e5; --land-line:#b9c5be; --sea:#dbe7ee;
-  --s-visit:#8a948f; --s-proposal:#e0a800; --s-memo:#e07a10; --s-approved:#3d7fd6; --s-ongoing:#2563c9; --s-done:#1f9d5c;
+  --s-visit:#8a948f; --s-proposal:#e0a800; --s-memo:#e07a10; --s-approved:#3d7fd6; --s-ongoing:#2563c9; --s-done:#1f9d5c; --s-vendor:#7b5bd0;
   --good:#1f9d5c; --bad:#cf3b3b;
   --f-display:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -22,12 +22,12 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f1513; --surface:#171f1c; --surface-2:#1e2824; --line:#2c3833; --fg:#e6ece9; --muted:#97a59e;
   --accent:#f2b13a; --accent-ink:#f6c866; --land:#24302b; --land-line:#3d4c45; --sea:#121b1f;
-  --s-visit:#8f9a95; --s-proposal:#e8b923; --s-memo:#f08c2e; --s-approved:#5b97e8; --s-ongoing:#4a86e8; --s-done:#35b673;
+  --s-visit:#8f9a95; --s-proposal:#e8b923; --s-memo:#f08c2e; --s-approved:#5b97e8; --s-ongoing:#4a86e8; --s-done:#35b673; --s-vendor:#a58bf0;
   --good:#35b673; --bad:#e86060; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f1513; --surface:#171f1c; --surface-2:#1e2824; --line:#2c3833; --fg:#e6ece9; --muted:#97a59e;
   --accent:#f2b13a; --accent-ink:#f6c866; --land:#24302b; --land-line:#3d4c45; --sea:#121b1f;
-  --s-visit:#8f9a95; --s-proposal:#e8b923; --s-memo:#f08c2e; --s-approved:#5b97e8; --s-ongoing:#4a86e8; --s-done:#35b673;
+  --s-visit:#8f9a95; --s-proposal:#e8b923; --s-memo:#f08c2e; --s-approved:#5b97e8; --s-ongoing:#4a86e8; --s-done:#35b673; --s-vendor:#a58bf0;
   --good:#35b673; --bad:#e86060; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:14px;line-height:1.45}
@@ -52,6 +52,17 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .btn.small{padding:5px 10px;font-size:.85rem}
 .btn:disabled{opacity:.5;cursor:not-allowed}
 
+.nav{display:flex;flex-direction:column;gap:8px}
+.chips.pillars .chip{padding:8px 14px;font-size:.9rem}
+.chips.progs{padding-left:12px;border-left:3px solid var(--accent)}
+.chips.progs .chip{font-size:.8rem;padding:5px 11px}
+.checks{border:1px solid var(--line);border-radius:7px;padding:8px 10px;display:flex;flex-wrap:wrap;gap:6px 16px;margin:0}
+.checks legend{font-size:.78rem;font-weight:600;color:var(--muted);padding:0 4px}
+.checks label{flex-direction:row!important;align-items:center;gap:6px!important;color:var(--fg)!important;font-weight:500!important}
+.checks input{width:auto!important}
+.prog{display:inline-block;width:80px;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;vertical-align:middle}
+.prog span{display:block;height:100%;background:var(--s-ongoing)}
+.card h2+.bars{margin-top:-4px}
 .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:600;font-size:.85rem;display:inline-flex;align-items:center;gap:6px}
@@ -115,13 +126,8 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .leaflet-control-layers{background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
 .state-label{background:none;border:0;box-shadow:none;color:var(--muted);font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:0}
 
-.pin{display:block;width:16px;height:16px;border:2px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.35);background:var(--pc)}
-.pin.t-rooftop{border-radius:50%}
-.pin.t-street{transform:rotate(45deg);border-radius:3px;width:14px;height:14px;margin:1px}
-.pin.t-both{border-radius:50% 50% 50% 3px}
-.pin.t-other{border-radius:50%;width:11px;height:11px;margin:2.5px;opacity:.85}
-.pin.approx{outline:1.5px dashed var(--pc);outline-offset:2px}
-.pin.sel{box-shadow:0 0 0 3px var(--fg),0 1px 6px rgba(0,0,0,.4)}
+.pin-svg{display:block;overflow:visible;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+.map-legend .pin-svg{filter:none;flex:none}
 
 .side{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);display:flex;flex-direction:column;min-width:0;height:560px}
 @media (max-width:960px){.side{height:auto;max-height:none}}
@@ -170,7 +176,7 @@ form.edit textarea{min-height:64px;resize:vertical}
 .bar .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:480px){.bar{grid-template-columns:96px minmax(0,1fr) 78px}}
 .note{font-size:.78rem;color:var(--muted)}
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-weight:600;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,.25)}
+.toast{max-width:calc(100vw - 32px);text-align:center;position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-weight:600;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .status-line{font-size:.78rem;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .photos-box{display:flex;flex-direction:column;gap:8px}
@@ -197,13 +203,14 @@ form.edit textarea{min-height:64px;resize:vertical}
 <div class="wrap">
   <header class="top">
     <div>
-      <div class="eyebrow"><span class="sun"></span>CSR Environment Pillar</div>
-      <h1 id="appTitle">CSR Solar Projects 2026</h1>
-      <div class="sub">Solar rooftop and streetlight projects across Malaysia. <span id="syncNote" class="status-line">Connecting…</span></div>
+      <div class="eyebrow"><span class="sun"></span><span id="eyebrow">TNB CSR</span></div>
+      <h1 id="appTitle">TNB CSR Dashboard</h1>
+      <div class="sub"><span id="appSub"></span> <span id="syncNote" class="status-line">Connecting…</span></div>
     </div>
     <div class="actions">
       <span class="status-line" id="who"></span>
-      <button class="btn" id="signInBtn" type="button">Sign in with Google</button>
+      <button class="btn" id="signInBtn" type="button"><svg width="14" height="14" viewBox="0 0 48 48" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>Sign in with Google</button>
+      <button class="btn" id="msSignInBtn" type="button"><svg width="14" height="14" viewBox="0 0 22 22" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"><path fill="#F25022" d="M0 0h10v10H0z"/><path fill="#7FBA00" d="M12 0h10v10H12z"/><path fill="#00A4EF" d="M0 12h10v10H0z"/><path fill="#FFB900" d="M12 12h10v10H12z"/></svg>Sign in with Microsoft</button>
       <button class="btn" id="signOutBtn" type="button" hidden>Sign out</button>
       <button class="btn" id="importBtn" type="button" hidden>Import list</button>
       <input type="file" id="importAny" accept=".xlsx,.xls,.json" hidden>
@@ -212,18 +219,23 @@ form.edit textarea{min-height:64px;resize:vertical}
     </div>
   </header>
 
+  <nav class="nav" aria-label="Pillars and programmes">
+    <div class="chips pillars" id="pillarChips" role="group" aria-label="Pillar"></div>
+    <div class="chips progs" id="progChips" role="group" aria-label="Programme" hidden></div>
+  </nav>
+
   <div class="filters">
-    <div class="chips" id="typeChips" role="group" aria-label="Project type"></div>
+    <div class="chips" id="typeChips" role="group" aria-label="Solar type" hidden></div>
     <select id="fYear" aria-label="Year"></select>
     <select id="fState" aria-label="State"><option value="">All states</option></select>
     <select id="fComp" aria-label="Component"><option value="">All components</option></select>
-    <input id="fSearch" type="search" placeholder="Search project name or remarks" aria-label="Search">
+    <input id="fSearch" type="search" placeholder="Search name, district, agency, vendor, school…" aria-label="Search">
   </div>
 
   <section class="kpis" id="kpis" aria-label="Summary"></section>
 
   <section class="pipe" aria-label="Project status">
-    <h2>Status pipeline</h2>
+    <h2 id="pipeTitle">Status pipeline</h2>
     <div class="pipe-bar" id="pipeBar"></div>
     <div class="pipe-legend" id="pipeLegend"></div>
   </section>
@@ -236,12 +248,7 @@ form.edit textarea{min-height:64px;resize:vertical}
         <button class="btn small" type="button" id="viewAll">All Malaysia</button>
       </div>
       <div class="pick-banner" id="pickBanner" hidden>Click the map to set the location</div>
-      <div class="map-legend" id="mapLegend">
-        <div class="row"><span class="pin t-rooftop" style="--pc:var(--muted);width:12px;height:12px"></span>Solar rooftop</div>
-        <div class="row"><span class="pin t-street" style="--pc:var(--muted);width:10px;height:10px"></span>Solar streetlight</div>
-        <div class="row"><span class="pin t-other" style="--pc:var(--muted)"></span>Other</div>
-        <div class="row"><span class="pin t-rooftop approx" style="--pc:var(--muted);width:12px;height:12px"></span>Approximate location</div>
-      </div>
+      <div class="map-legend" id="mapLegend"></div>
     </div>
 
     <aside class="side" id="side">
@@ -253,17 +260,11 @@ form.edit textarea{min-height:64px;resize:vertical}
 
   <section class="lower">
     <div class="card">
-      <h2>Project value by state</h2>
+      <h2>Value by state</h2>
       <div class="bars" id="stateBars"></div>
-      <div class="note">Bars are coloured by status. Values in RM.</div>
+      <div class="note" id="stateNote"></div>
     </div>
-    <div class="card">
-      <h2>Invoice and payment</h2>
-      <div class="bars" id="payBars"></div>
-      <h2 style="margin-top:6px">Streetlight units and rooftop capacity</h2>
-      <div class="bars" id="capBars"></div>
-      <div class="note" id="capNote"></div>
-    </div>
+    <div class="card" id="card2"></div>
   </section>
 </div>
 <div class="toast" id="toast" hidden></div>
