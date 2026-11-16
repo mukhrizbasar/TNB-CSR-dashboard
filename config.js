@@ -12,11 +12,6 @@ export const CONFIG = {
     appId: "1:476559184445:web:f2392d7902b8f255431054"
   },
 
-  // Sign in with Microsoft (see SETUP.md, "Sign in with Microsoft").
-  // tenant: leave "" for any Microsoft account, or put TNB's Directory (tenant) ID to show only TNB's sign-in page.
-  // enabled: set to false to hide the Microsoft button.
-  microsoft: { enabled: true, tenant: "" },
-
   // Optional: shown in the header.
   title: "TNB CSR Dashboard"
 };
