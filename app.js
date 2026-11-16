@@ -4,13 +4,13 @@ let initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuth
 
 /* ================= PILLARS, PROGRAMMES, FIELDS ================= */
 const SOLAR_ST = ["Site Visit","Pending Proposal","Pending Approval Memo","Approved","Ongoing","Completed"];
-const HOUSE_ST = ["Application received","Approved","Vendor appointed","Under construction","Completed"];
+const HOUSE_ST = ["Application received","Approved","Vendor appointed","Under construction","Completed","Rejected"];
 const GEN_ST = ["Planning","Approved","Ongoing","Completed"];
 const SVAR = {"Site Visit":"--s-visit","Pending Proposal":"--s-proposal","Pending Approval Memo":"--s-memo","Approved":"--s-approved","Ongoing":"--s-ongoing","Completed":"--s-done",
-  "Application received":"--s-proposal","Vendor appointed":"--s-vendor","Under construction":"--s-ongoing","Planning":"--s-proposal"};
-const STAGES = [["pipeline","In pipeline","--s-proposal"],["approved","Approved","--s-approved"],["progress","In progress","--s-ongoing"],["done","Completed","--s-done"]];
+  "Application received":"--s-proposal","Vendor appointed":"--s-vendor","Under construction":"--s-ongoing","Planning":"--s-proposal","Rejected":"--s-rejected"};
+const STAGES = [["pipeline","In pipeline","--s-proposal"],["approved","Approved","--s-approved"],["progress","In progress","--s-ongoing"],["done","Completed","--s-done"],["rejected","Rejected","--s-rejected"]];
 const STAGE_OF = {"Site Visit":"pipeline","Pending Proposal":"pipeline","Pending Approval Memo":"pipeline","Application received":"pipeline","Planning":"pipeline",
-  "Approved":"approved","Vendor appointed":"approved","Ongoing":"progress","Under construction":"progress","Completed":"done"};
+  "Approved":"approved","Vendor appointed":"approved","Ongoing":"progress","Under construction":"progress","Completed":"done","Rejected":"rejected"};
 const TYPES = ["Solar Rooftop","Solar Streetlight","Rooftop + Streetlight","Other"];
 const STATES = ["Johor","Kedah","Kelantan","Malacca","Negeri Sembilan","Pahang","Perak","Perlis","Penang","Sabah","Sarawak","Selangor","Terengganu","W.P. Kuala Lumpur","W.P. Labuan","W.P. Putrajaya","Nationwide"];
 const COMPONENTS = ["Komuniti Lestari","Tree for a Tree","Pulau Tenaga Hijau","Biodiversity","Firefly Conservation","Extinction Species"];
@@ -262,12 +262,12 @@ function renderKpis(rows){
   const k=[[U,rows.length,`${pinned} on the map`],[sp?sp.valueLabel:"Total value",rmShort(val),noval?`${noval} without a value yet`:"All valued"],
     ["Completed",done,rows.length?Math.round(done/rows.length*100)+"% of "+u[1]:""],
     isHouse?["Under way",active,`${rows.filter(p=>p.status==="Under construction").length} under construction`]:["Approved or ongoing",active,"Approved or in progress"],
-    ["In pipeline",pipe,isHouse?"Application received":"Not yet approved"],["Paid",`${paid}/${rows.length}`,`${rows.length-paid} not paid`]];
+    ["In pipeline",pipe,(isHouse?"Application received":"Not yet approved")+(st("rejected")?` · ${st("rejected")} rejected`:"")],["Paid",`${paid}/${rows.length}`,`${rows.length-paid} not paid`]];
   $("kpis").innerHTML=k.map(([l,v,h])=>`<div class="kpi"><span class="l">${esc(l)}</span><span class="v" title="${esc(v)}">${esc(v)}</span><span class="h">${esc(h)}</span></div>`).join("");
 }
 function renderPipe(rows){
   const sp=single(), n=rows.length||1;
-  const counts = sp ? sp.statuses.map(s=>[s,s,rows.filter(p=>p.status===s).length,sc(s)]) : STAGES.map(([k,l,v])=>[k,l,rows.filter(p=>STAGE_OF[p.status]===k).length,`var(${v})`]);
+  const counts = sp ? sp.statuses.map(s=>[s,s,rows.filter(p=>p.status===s).length,sc(s)]) : STAGES.map(([k,l,v])=>[k,l,rows.filter(p=>STAGE_OF[p.status]===k).length,`var(${v})`]).filter(c=>c[0]!=="rejected"||c[2]);
   const none=rows.filter(p=>!STAGE_OF[p.status]).length;
   $("pipeTitle").textContent = sp ? "Status pipeline" : "Progress across programmes";
   $("pipeBar").innerHTML=counts.filter(c=>c[2]).map(([k,l,c,col])=>`<span title="${esc(l)}: ${c}" style="width:${c/n*100}%;background:${col}"></span>`).join("");
