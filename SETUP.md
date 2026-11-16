@@ -43,6 +43,9 @@ If you leave `googleMapsKey` empty, the app uses a free OpenStreetMap street map
 Open the site, click **Sign in with Google** with an editor email. The list will be empty with an **Import projects file** button. Click it and choose `seed-projects.json` (sent to you separately, not kept in GitHub). Do this once.
 
 ## Day-to-day
+- **Click to filter, like Power BI.** Click a KPI card (Completed, Under way, In pipeline, Paid, "not paid", "without a value yet"), a status in the pipeline, a state, a programme, an agency, a fund or any bar, and every card, chart, map pin and the list update. Click it again to clear it. Hold **Ctrl** (Cmd on Mac) or **Shift** to pick several. Clicking a coloured part of a bar filters by that row and that status together.
+- **Filters** opens slicers with tick boxes and counts for stage, status, state, district, agency, fund, vendor, component, school, year, payment and more. Active filters show as chips under the search box. Click ✕ on a chip, or **Clear all**.
+- The **RM / Count** switch changes the charts between value and number of records. The second chart's dropdown picks what to break down by (agency, district, fund, vendor, programme…). The list has its own sort.
 - Add or remove editors and viewers by editing `config/access` in the Firestore console.
 - Pick a pillar (Environment, Economic Social, Education, Wakalah, Sports) and then a programme along the top. Click any pin or row to see details. Editors click **Edit** to change status, value, dates or location. **Pick on map** with satellite view is the quickest way to pin the exact rooftop.
 - **Export to Excel** downloads what you are looking at, one sheet per programme, with each programme's own columns plus coordinates. An exported sheet can be edited and imported again.
