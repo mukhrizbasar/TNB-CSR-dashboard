@@ -825,6 +825,7 @@ function renderPhotos(msg){
 function loadImage(file){
   return new Promise((res,rej)=>{ const url=URL.createObjectURL(file), img=new Image(); img.onload=()=>{ URL.revokeObjectURL(url); res(img); }; img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error("unreadable")); }; img.src=url; });
 }
+const PHOTO_TARGET=410000;
 function shrink(img,maxSide,quality){
   const r=Math.min(1,maxSide/Math.max(img.naturalWidth,img.naturalHeight));
   const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*r); c.height=Math.round(img.naturalHeight*r);
@@ -839,8 +840,10 @@ async function addPhotos(files){
     try{
       if(!/^image\//.test(fl.type) && !/\.(jpe?g|png|webp|heic|heif)$/i.test(fl.name)) throw new Error("not an image");
       const img=await loadImage(fl);
-      let side=1600, q=.78, full=shrink(img,side,q);
-      while(full.url.length>850000 && side>600){ side=Math.round(side*.8); q=Math.max(.6,q-.05); full=shrink(img,side,q); }
+      // Target about 300 KB per photo (a JPEG data URL is ~1.37x the file size): lower quality first, then size.
+      let side=1600, q=.8, full=shrink(img,side,q);
+      while(full.url.length>PHOTO_TARGET && (q>.6 || side>1000)){ if(q>.6) q=Math.max(.6,q-.06); else side=Math.max(1000,Math.round(side*.85)); full=shrink(img,side,q); }
+      while(full.url.length>850000 && side>600){ side=Math.round(side*.8); full=shrink(img,side,q); }
       const thumb=shrink(img,360,.7);
       const taken=fl.lastModified?new Date(fl.lastModified).toISOString():new Date().toISOString();
       await setDoc(doc(collection(db,"projects",pid,"photos")),{ data:full.url, thumb:thumb.url, w:full.w, h:full.h, caption:"", fileName:fl.name, takenAt:taken, uploadedAt:new Date().toISOString(), uploadedBy:S.user?.email||"" });
