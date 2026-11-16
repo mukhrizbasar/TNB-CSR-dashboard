@@ -67,7 +67,7 @@ const PILLAR_NAME = Object.fromEntries(PILLARS);
 const programmeOf = p => PROG[p.programme] ? p.programme : (p.type && p.type!=="Other" ? "solar" : p.component==="Tree for a Tree" ? "tree" : "env-other");
 const progOf = p => PROG[programmeOf(p)];
 
-const S = { projects:new Map(), year:String(Math.min(2030,Math.max(2023,new Date().getFullYear()))), pillar:"", prog:"", type:"", status:"", state:"", comp:"", q:"", sel:null, editing:null, confirmDel:false, pick:false, canWrite:false, user:null, loaded:false };
+const S = { projects:new Map(), year:String(Math.min(2030,Math.max(2023,new Date().getFullYear()))), pillar:"", prog:"", type:"", f:{}, sort:"default", metric:"value", brk:"", q:"", sel:null, editing:null, confirmDel:false, pick:false, canWrite:false, user:null, loaded:false };
 const PH={ for:null, unsub:null, list:[], loading:false, open:null, busy:0 };
 try{ const v=JSON.parse(localStorage.getItem("csr-view")||"{}"); if(v.pillar!=null) S.pillar=v.pillar; if(v.prog!=null) S.prog=v.prog; if(v.type!=null) S.type=v.type; const y=localStorage.getItem("csr-year"); if(y!==null) S.year=y; }catch(e){}
 if(S.prog && !PROG[S.prog]) S.prog=""; if(S.pillar && !PILLAR_NAME[S.pillar]) S.pillar="";
@@ -93,18 +93,97 @@ function viewProgs(){ if(S.prog) return [PROG[S.prog]]; return PROGRAMMES.filter
 const single = () => viewProgs().length===1 ? viewProgs()[0] : null;
 function viewUnit(){ const u=[...new Set(viewProgs().map(p=>p.unit[1]))]; return u.length===1 ? viewProgs()[0].unit : ["project","projects"]; }
 function typeMatch(p){ if(S.prog!=="solar"||!S.type) return true; if(S.type==="rooftop") return p.type==="Solar Rooftop"||p.type==="Rooftop + Streetlight"; return p.type==="Solar Streetlight"||p.type==="Rooftop + Streetlight"; }
-function statusMatch(p){ if(!S.status) return true; return single() ? p.status===S.status : STAGE_OF[p.status]===S.status; }
 const inYear = p => !S.year || projYear(p)===+S.year;
-function filtered(ignoreStatus){
+function baseRows(){
   const q=S.q.trim().toLowerCase(), ids=new Set(viewProgs().map(p=>p.id));
   return [...S.projects.values()].filter(p=>{
     if(!ids.has(programmeOf(p)) || !typeMatch(p) || !inYear(p)) return false;
-    if(S.state && p.state!==S.state) return false;
-    if(S.comp && p.component!==S.comp) return false;
-    if(!ignoreStatus && !statusMatch(p)) return false;
     if(q && ![p.name,p.remarks,p.state,p.district,p.recipient,p.agency,p.school,p.vendor,p.address,p.component].join(" ").toLowerCase().includes(q)) return false;
     return true;
-  }).sort((a,b)=>PROGRAMMES.indexOf(progOf(a))-PROGRAMMES.indexOf(progOf(b)) || (a.no||9999)-(b.no||9999) || String(a.name).localeCompare(String(b.name)));
+  });
+}
+
+/* ================= CROSS-FILTERS (click anything to filter everything else, like Power BI) ================= */
+const STAGE_LABEL=Object.fromEntries(STAGES.map(s=>[s[0],s[1]]));
+const NR="Not recorded";
+const DIMS={
+  prog:{label:"Programme",get:p=>programmeOf(p),fmt:v=>PROG[v]?.short||v},
+  stage:{label:"Stage",get:p=>STAGE_OF[p.status]||"none",fmt:v=>STAGE_LABEL[v]||"No status"},
+  status:{label:"Status",get:p=>p.status||"No status"},
+  state:{label:"State",get:p=>p.state||"Unassigned"},
+  district:{label:"District",get:p=>p.district||NR,field:"district"},
+  agency:{label:"Agency",get:p=>p.agency||NR,field:"agency"},
+  fund:{label:"Fund",get:p=>p.fund||NR,field:"fund"},
+  vendor:{label:"Vendor",get:p=>p.vendor||NR,field:"vendor"},
+  component:{label:"Component",get:p=>p.component||NR,field:"component"},
+  type:{label:"Solar type",get:p=>p.type||NR,field:"type"},
+  school:{label:"School",get:p=>p.school||NR,field:"school"},
+  partner:{label:"Partner",get:p=>p.partner||NR,field:"partner"},
+  month:{label:"Month",get:p=>p.month||NR,field:"month"},
+  year:{label:"Year",get:p=>String(projYear(p)||NR)},
+  payment:{label:"Payment",get:p=>p.payment==="Paid"?"Paid":"Not Paid"},
+  invoice:{label:"Invoice",get:p=>p.invoice==="Received"?"Received":"Not Received",field:"invoice"},
+  value:{label:"Value",get:p=>p.value?"Has value":"No value yet"},
+  pin:{label:"Location",get:p=>p.lat==null?"No pin":p.locVerified?"Exact pin":"Approximate pin"},
+};
+const fmtV=(d,v)=>DIMS[d].fmt?DIMS[d].fmt(v):v;
+function dimRelevant(d){
+  const ps=viewProgs(), D=DIMS[d];
+  if(d==="prog") return ps.length>1;
+  if(d==="year") return !S.year;
+  return D.field ? ps.some(p=>p.fields.some(x=>x.k===D.field)) : true;
+}
+let BASE=[];
+function passes(p,except){ for(const d in S.f){ if(d===except) continue; if(!S.f[d].has(DIMS[d].get(p))) return false; } return true; }
+const rowsExcept = d => BASE.filter(p=>passes(p,d));
+const isOn=(d,v)=>!!S.f[d]?.has(v), dimOn=d=>!!S.f[d];
+const dimCls=(d,v)=>dimOn(d)?(isOn(d,v)?" on":" off"):"";
+/* plain click = only this value (click again to clear); Ctrl/Cmd/Shift-click = add to the selection */
+function pickF(d,v,add){
+  const s=S.f[d];
+  if(add){ const n=new Set(s||[]); n.has(v)?n.delete(v):n.add(v); n.size?S.f[d]=n:delete S.f[d]; }
+  else if(s && s.size===1 && s.has(v)) delete S.f[d];
+  else S.f[d]=new Set([v]);
+  S.sel=null; render();
+}
+function setF(d,vals){ const cur=S.f[d]; const same=cur&&cur.size===vals.length&&vals.every(v=>cur.has(v)); if(same) delete S.f[d]; else S.f[d]=new Set(vals); S.sel=null; render(); }
+function clearF(d){ if(d) delete S.f[d]; else S.f={}; S.sel=null; render(); }
+function sortRows(rows){
+  const by={
+    default:(a,b)=>PROGRAMMES.indexOf(progOf(a))-PROGRAMMES.indexOf(progOf(b)) || (a.no||9999)-(b.no||9999) || String(a.name).localeCompare(String(b.name)),
+    name:(a,b)=>String(a.name).localeCompare(String(b.name)),
+    value:(a,b)=>(+b.value||0)-(+a.value||0),
+    status:(a,b)=>(STAGES.findIndex(x=>x[0]===STAGE_OF[a.status])-STAGES.findIndex(x=>x[0]===STAGE_OF[b.status]))||String(a.status).localeCompare(String(b.status)),
+    state:(a,b)=>String(a.state||"~").localeCompare(String(b.state||"~"))||String(a.district||"").localeCompare(String(b.district||"")),
+    updated:(a,b)=>String(b.updatedAt||"").localeCompare(String(a.updatedAt||"")),
+    progress:(a,b)=>(+b.progress||0)-(+a.progress||0),
+  };
+  return rows.slice().sort(by[S.sort]||by.default);
+}
+function filtered(){ return sortRows(BASE.filter(p=>passes(p))); }
+function renderActive(){
+  const ds=Object.keys(S.f);
+  $("activeFilters").hidden=!ds.length;
+  $("activeFilters").innerHTML = ds.length ? `<span class="status-line">Filtered by</span>`+ds.map(d=>`<button type="button" class="fchip" data-clear="${d}" title="Remove this filter"><b>${esc(DIMS[d].label)}:</b> ${[...S.f[d]].map(v=>esc(fmtV(d,v))).join(", ")} <span aria-hidden="true">✕</span></button>`).join("")+`<button type="button" class="btn small" data-clear="*">Clear all</button>` : "";
+  $("slicerBtn").innerHTML=`Filters${ds.length?` <span class="badge">${ds.length}</span>`:""}`;
+}
+const SL={q:{}};
+function renderSlicers(){
+  const panel=$("slicerPanel"); if(panel.hidden) return;
+  const dims=Object.keys(DIMS).filter(d=>dimRelevant(d)||dimOn(d));
+  panel.innerHTML=`<div class="slicer-head"><strong>Filters</strong><span class="status-line">Tick as many as you like. Every chart, card, map pin and list updates.</span><button type="button" class="btn small" id="slicerClose">Done</button></div><div class="slicer-grid">`+dims.map(d=>{
+    const cnt={}; rowsExcept(d).forEach(p=>{ const v=DIMS[d].get(p); cnt[v]=(cnt[v]||0)+1; });
+    BASE.forEach(p=>{ const v=DIMS[d].get(p); if(!(v in cnt)) cnt[v]=0; });
+    (S.f[d]||[]).forEach(v=>{ if(!(v in cnt)) cnt[v]=0; });
+    let vals=Object.keys(cnt);
+    if(vals.length<2 && !dimOn(d)) return "";
+    vals.sort((a,b)=>d==="year"?a.localeCompare(b):d==="stage"?STAGES.findIndex(x=>x[0]===a)-STAGES.findIndex(x=>x[0]===b):(cnt[b]-cnt[a])||a.localeCompare(b));
+    const q=(SL.q[d]||"").toLowerCase();
+    return `<div class="slicer" data-dim="${d}"><div class="slicer-t"><span>${esc(DIMS[d].label)}</span>${dimOn(d)?`<button type="button" class="linkbtn" data-clear="${d}">Clear</button>`:""}</div>
+      ${vals.length>10?`<input type="search" class="slicer-q" data-dim="${d}" placeholder="Search ${esc(DIMS[d].label.toLowerCase())}" value="${esc(SL.q[d]||"")}">`:""}
+      <div class="slicer-list">${vals.map(v=>`<label class="${cnt[v]?"":"zero"}" ${q&&!fmtV(d,v).toLowerCase().includes(q)?"hidden":""}><input type="checkbox" data-dim="${d}" data-v="${esc(v)}" ${isOn(d,v)?"checked":""}><span>${esc(fmtV(d,v))}</span><span class="num">${cnt[v]}</span></label>`).join("")}</div></div>`;
+  }).join("")+`</div>`;
+  $("slicerClose").onclick=()=>{ panel.hidden=true; $("slicerBtn").setAttribute("aria-expanded","false"); };
 }
 
 /* ================= MAP (Leaflet + OpenStreetMap, or Google Maps if a key is set) ================= */
@@ -234,11 +313,9 @@ function renderNav(){
     $("typeChips").innerHTML=opts.map(([v,l,c])=>`<button class="chip" type="button" data-v="${v}" aria-pressed="${S.type===v}">${l}<span class="c">${c}</span></button>`).join("");
     $("typeChips").hidden=false;
   } else { $("typeChips").hidden=true; $("typeChips").innerHTML=""; }
-  $("fComp").hidden = S.pillar!=="env" || (S.prog && S.prog!=="env-other" && S.prog!=="solar");
-  if($("fComp").hidden && S.comp){ S.comp=""; $("fComp").value=""; }
 }
 function setView(pillar,prog){
-  S.pillar=pillar; S.prog=prog; S.status=""; S.sel=null; S.editing=null; setPick(false); M.setPick&&M.setPick(null);
+  S.pillar=pillar; S.prog=prog; delete S.f.prog; if(S.f.status) delete S.f.status; S.sel=null; S.editing=null; setPick(false); M.setPick&&M.setPick(null);
   if(pillar && !prog){ const ps=PROGRAMMES.filter(p=>p.pillar===pillar); if(ps.length===1) S.prog=ps[0].id; }
   if(S.prog!=="solar") S.type="";
   saveView(); render();
@@ -254,25 +331,36 @@ function renderTitle(){
 }
 function renderKpis(rows){
   const sp=single(), u=viewUnit(), U=u[1][0].toUpperCase()+u[1].slice(1);
-  const val=sum(rows,"value"), noval=rows.filter(p=>!p.value).length, pinned=rows.filter(p=>p.lat!=null).length;
-  const st=k=>rows.filter(p=>STAGE_OF[p.status]===k).length;
-  const done=st("done"), active=st("approved")+st("progress"), pipe=st("pipeline");
-  const paid=rows.filter(p=>p.payment==="Paid").length;
+  const rs=rowsExcept("stage"), rp=rowsExcept("payment"), rv=rowsExcept("value");
+  const val=sum(rows,"value"), noval=rv.filter(p=>!p.value).length, pinned=rows.filter(p=>p.lat!=null).length;
+  const st=k=>rs.filter(p=>STAGE_OF[p.status]===k).length;
+  const done=st("done"), active=st("approved")+st("progress"), pipe=st("pipeline"), rej=st("rejected");
+  const paid=rp.filter(p=>p.payment==="Paid").length;
   const isHouse = sp ? sp.statuses===HOUSE_ST : viewProgs().every(p=>p.statuses===HOUSE_ST);
-  const k=[[U,rows.length,`${pinned} on the map`],[sp?sp.valueLabel:"Total value",rmShort(val),noval?`${noval} without a value yet`:"All valued"],
-    ["Completed",done,rows.length?Math.round(done/rows.length*100)+"% of "+u[1]:""],
-    isHouse?["Under way",active,`${rows.filter(p=>p.status==="Under construction").length} under construction`]:["Approved or ongoing",active,"Approved or in progress"],
-    ["In pipeline",pipe,(isHouse?"Application received":"Not yet approved")+(st("rejected")?` · ${st("rejected")} rejected`:"")],["Paid",`${paid}/${rows.length}`,`${rows.length-paid} not paid`]];
-  $("kpis").innerHTML=k.map(([l,v,h])=>`<div class="kpi"><span class="l">${esc(l)}</span><span class="v" title="${esc(v)}">${esc(v)}</span><span class="h">${esc(h)}</span></div>`).join("");
+  const on=(d,vals)=>{ const s=S.f[d]; return !!s && s.size===vals.length && vals.every(v=>s.has(v)); };
+  const k=[
+    {l:U,v:rows.length,h:`${pinned} on the map`,act:Object.keys(S.f).length?"clear":null,tip:"Clear all filters"},
+    {l:sp?sp.valueLabel:"Total value",v:rmShort(val),h:noval?`${noval} without a value yet`:"All valued",d:"value",vals:noval?["No value yet"]:null,tip:"Show only records without a value"},
+    {l:"Completed",v:done,h:rs.length?Math.round(done/rs.length*100)+"% of "+u[1]:"",d:"stage",vals:["done"]},
+    {l:isHouse?"Under way":"Approved or ongoing",v:active,h:isHouse?`${rs.filter(p=>p.status==="Under construction").length} under construction`:"Approved or in progress",d:"stage",vals:["approved","progress"]},
+    {l:"In pipeline",v:pipe,h:isHouse?"Application received":"Not yet approved",d:"stage",vals:["pipeline"],extra:rej?{d:"stage",vals:["rejected"],t:`${rej} rejected`}:null},
+    {l:"Paid",v:`${paid}/${rp.length}`,h:null,d:"payment",vals:["Paid"],extra:{d:"payment",vals:["Not Paid"],t:`${rp.length-paid} not paid`}},
+  ];
+  $("kpis").innerHTML=k.map((c,i)=>{
+    const click=c.act||c.vals, pressed=c.vals&&on(c.d,c.vals);
+    const ex=c.extra?`<button type="button" class="kpi-sub${on(c.extra.d,c.extra.vals)?" on":""}" data-kd="${c.extra.d}" data-kv="${c.extra.vals.join("|")}" aria-pressed="${on(c.extra.d,c.extra.vals)}">${esc(c.extra.t)}</button>`:"";
+    const h=c.h!=null?`<span class="h">${esc(c.h)}</span>`:"";
+    return `<div class="kpi${click?" click":""}${pressed?" on":""}${c.vals&&dimOn(c.d)&&!pressed?" off":""}" ${click?`role="button" tabindex="0" aria-pressed="${!!pressed}" title="${esc(c.tip||"Click to filter. Click again to clear.")}" ${c.act?'data-kclear="1"':`data-kd="${c.d}" data-kv="${c.vals.join("|")}"`}`:""}><span class="l">${esc(c.l)}</span><span class="v" title="${esc(c.v)}">${esc(c.v)}</span>${h}${ex}</div>`;
+  }).join("");
 }
-function renderPipe(rows){
-  const sp=single(), n=rows.length||1;
+function renderPipe(){
+  const sp=single(), d=sp?"status":"stage", rows=rowsExcept(d), n=rows.length||1;
   const counts = sp ? sp.statuses.map(s=>[s,s,rows.filter(p=>p.status===s).length,sc(s)]) : STAGES.map(([k,l,v])=>[k,l,rows.filter(p=>STAGE_OF[p.status]===k).length,`var(${v})`]).filter(c=>c[0]!=="rejected"||c[2]);
   const none=rows.filter(p=>!STAGE_OF[p.status]).length;
   $("pipeTitle").textContent = sp ? "Status pipeline" : "Progress across programmes";
-  $("pipeBar").innerHTML=counts.filter(c=>c[2]).map(([k,l,c,col])=>`<span title="${esc(l)}: ${c}" style="width:${c/n*100}%;background:${col}"></span>`).join("");
-  $("pipeLegend").innerHTML=counts.map(([k,l,c,col])=>`<button type="button" data-s="${esc(k)}" aria-pressed="${S.status===k}"><span class="dot" style="background:${col}"></span>${esc(l)} <span class="num">${c}</span></button>`).join("")
-    +(none?`<span class="status-line">${none} with no status</span>`:"")+(S.status?`<button type="button" data-s="">Clear status filter</button>`:"");
+  $("pipeBar").innerHTML=counts.filter(c=>c[2]).map(([k,l,c,col])=>`<span class="seg${dimCls(d,k)}" data-fd="${d}" data-fv="${esc(k)}" title="${esc(l)}: ${c}. Click to filter." style="width:${c/n*100}%;background:${col}"></span>`).join("");
+  $("pipeLegend").innerHTML=counts.map(([k,l,c,col])=>`<button type="button" class="${dimCls(d,k).trim()}" data-fd="${d}" data-fv="${esc(k)}" aria-pressed="${isOn(d,k)}"><span class="dot" style="background:${col}"></span>${esc(l)} <span class="num">${c}</span></button>`).join("")
+    +(none?`<span class="status-line">${none} with no status</span>`:"")+(dimOn(d)?`<button type="button" data-clear="${d}">Clear status filter</button>`:"");
 }
 function listMeta(p){
   const pr=progOf(p), bits=[];
@@ -286,6 +374,7 @@ function listMeta(p){
 }
 function renderList(rows){
   $("listCount").textContent=`${rows.length} shown`;
+  $("fSort").hidden=!!(S.sel||S.editing);
   $("sideTitle").textContent = S.editing ? (S.editing._id?"Edit "+progOf(S.editing).unit[0]:"New "+progOf(S.editing).unit[0]) : S.sel ? "Details" : viewUnit()[1][0].toUpperCase()+viewUnit()[1].slice(1);
   if(!S.loaded) return;
   if(!rows.length){
@@ -445,31 +534,48 @@ function parseLatLng(s){
 function nextNo(){ return Math.max(0,...[...S.projects.values()].filter(p=>programmeOf(p)==="solar").map(p=>p.no||0))+1; }
 
 /* lower cards */
+const segDim = () => single() ? "status" : "stage";
 const segKey = p => single() ? p.status : STAGE_OF[p.status];
 const segList = () => single() ? single().statuses.map(s=>[s,s,sc(s)]) : STAGES.map(([k,l,v])=>[k,l,`var(${v})`]);
-function stackBars(groups,emptyMsg){
-  const arr=Object.entries(groups).sort((a,b)=>b[1].total-a[1].total||b[1].n-a[1].n), max=Math.max(1,...arr.map(a=>a[1].total)), segs=segList();
-  return arr.length ? arr.map(([s,d])=>`<div class="bar"><span class="lab" title="${esc(s)}">${esc(s)} <span class="status-line">(${d.n})</span></span><span class="track">${segs.filter(([k])=>d.seg[k]).map(([k,l,col])=>`<span title="${esc(l)}: ${rm(d.seg[k])}" style="width:${d.seg[k]/max*100}%;background:${col}"></span>`).join("")}</span><span class="n">${rmShort(d.total)}</span></div>`).join("") : `<div class="empty">${emptyMsg}</div>`;
-}
+const mval = p => S.metric==="count" ? 1 : (+p.value||0);
+const mfmt = v => S.metric==="count" ? Number(v).toLocaleString() : rmShort(v);
 function groupBy(rows,keyFn){
   const by={};
-  rows.forEach(p=>{ const s=keyFn(p)||"Unassigned"; const g=(by[s]=by[s]||{total:0,n:0,seg:{}}); g.total+=(+p.value||0); g.n++; const k=segKey(p); g.seg[k]=(g.seg[k]||0)+(+p.value||0); });
+  rows.forEach(p=>{ const s=keyFn(p); const g=(by[s]=by[s]||{total:0,n:0,seg:{}}); g.total+=mval(p); g.n++; const k=segKey(p); g.seg[k]=(g.seg[k]||0)+mval(p); });
   return by;
 }
-const ratioRow=(l,a,b,txt)=>`<div class="bar"><span class="lab">${l}</span><span class="track"><span style="width:${b?a/b*100:0}%;background:var(--good)"></span><span style="width:${b?(b-a)/b*100:100}%;background:color-mix(in srgb,var(--bad) 55%,transparent)"></span></span><span class="n">${txt}</span></div>`;
-const plainRow=(l,txt)=>`<div class="bar"><span class="lab">${l}</span><span class="track"></span><span class="n">${txt}</span></div>`;
+/* clickable stacked bars: click a row to filter on it, click a coloured segment to filter on the row and that status */
+function stackBars(d,emptyMsg,limit){
+  const groups=groupBy(rowsExcept(d),p=>DIMS[d].get(p)), sd=segDim();
+  let arr=Object.entries(groups).sort((a,b)=>b[1].total-a[1].total||b[1].n-a[1].n);
+  const more=limit&&arr.length>limit?arr.length-limit:0; if(more) arr=arr.slice(0,limit);
+  const max=Math.max(1,...arr.map(a=>a[1].total)), segs=segList();
+  if(!arr.length) return `<div class="empty">${emptyMsg}</div>`;
+  return arr.map(([v,g])=>`<div class="bar click${dimCls(d,v)}" data-fd="${d}" data-fv="${esc(v)}" role="button" tabindex="0" aria-pressed="${isOn(d,v)}"><span class="lab">${esc(fmtV(d,v))} <span class="status-line">(${g.n})</span></span><span class="track">${segs.filter(([k])=>g.seg[k]).map(([k,l,col])=>`<span class="seg" data-fd2="${sd}" data-fv2="${esc(k)}" title="${esc(l)}: ${mfmt(g.seg[k])}" style="width:${g.seg[k]/max*100}%;background:${col}"></span>`).join("")}</span><span class="n">${mfmt(g.total)}</span></div>`).join("")
+    + (more?`<div class="note">${more} more not shown. Use Filters to pick them.</div>`:"");
+}
+const ratioRow=(l,a,b,txt,fd,fv,bad)=>`<div class="bar${fd?" click"+dimCls(fd,fv):""}" ${fd?`data-fd="${fd}" data-fv="${esc(fv)}" role="button" tabindex="0" aria-pressed="${isOn(fd,fv)}"`:""}><span class="lab">${l}</span><span class="track"><span style="width:${b?a/b*100:0}%;background:${bad?"color-mix(in srgb,var(--bad) 75%,transparent)":"var(--good)"}"></span><span style="width:${b?(b-a)/b*100:100}%;background:${bad?"var(--surface-2)":"color-mix(in srgb,var(--bad) 55%,transparent)"}"></span></span><span class="n">${txt}</span></div>`;
+const plainRow=(l,txt,fd,fv)=>`<div class="bar${fd?" click"+dimCls(fd,fv):""}" ${fd?`data-fd="${fd}" data-fv="${esc(fv)}" role="button" tabindex="0" aria-pressed="${isOn(fd,fv)}"`:""}><span class="lab">${l}</span><span class="track"></span><span class="n">${txt}</span></div>`;
+const metricBtns=()=>`<span class="seg-toggle" role="group" aria-label="Measure"><button type="button" data-metric="value" aria-pressed="${S.metric==="value"}">RM</button><button type="button" data-metric="count" aria-pressed="${S.metric==="count"}">Count</button></span>`;
+function brkOptions(){ return Object.keys(DIMS).filter(d=>!["state","stage","status","value","pin","payment"].includes(d) && dimRelevant(d) && new Set(BASE.map(p=>DIMS[d].get(p))).size>1); }
 function renderLower(rows){
   const sp=single(), n=rows.length;
-  $("stateBars").innerHTML=stackBars(groupBy(rows,p=>p.state),"Nothing matches these filters.");
-  $("stateNote").textContent = sp ? "Bars are coloured by status. Values in RM." : "Bars are coloured by progress stage. Values in RM.";
-  let h="";
-  if(!sp){
-    h+=`<h2>By programme</h2><div class="bars">${stackBars(groupBy(rows,p=>progOf(p).short),"Nothing matches these filters.")}</div>`;
+  $("stateHead").innerHTML=`<h2>${S.metric==="count"?"Count":"Value"} by state</h2>${metricBtns()}`;
+  $("stateBars").innerHTML=stackBars("state","Nothing matches these filters.");
+  $("stateNote").textContent = `Click a state to filter everything; click a coloured part to filter by state and ${sp?"status":"stage"}. Ctrl/Shift-click to pick several.`;
+  const opts=brkOptions();
+  if(!opts.includes(S.brk)) S.brk=opts.includes("prog")?"prog":opts.includes("agency")?"agency":opts.includes("district")?"district":opts[0]||"";
+  $("brkCard").hidden=!opts.length;
+  if(opts.length){
+    $("brkHead").innerHTML=`<h2>${S.metric==="count"?"Count":"Value"} by</h2><select id="brkSel" aria-label="Break down by">${opts.map(d=>`<option value="${d}" ${d===S.brk?"selected":""}>${esc(DIMS[d].label)}</option>`).join("")}</select>${metricBtns()}`;
+    $("brkBars").innerHTML=stackBars(S.brk,"Nothing matches these filters.",15);
+    $("brkSel").onchange=e=>{ S.brk=e.target.value; render(); };
   }
-  const paid=rows.filter(p=>p.payment==="Paid"), paidVal=sum(paid,"value"), tot=sum(rows,"value");
+  let h="";
+  const rp=rowsExcept("payment"), np=rp.length, paid=rp.filter(p=>p.payment==="Paid"), paidVal=sum(paid,"value"), tot=sum(rp,"value");
   h+=`<h2>Payment</h2><div class="bars">`;
-  if(rows.some(p=>p.invoice)) { const inv=rows.filter(p=>p.invoice==="Received").length; h+=ratioRow("Invoice received",inv,n,`${inv} / ${n}`); }
-  h+=ratioRow("Paid",paid.length,n,`${paid.length} / ${n}`)+ratioRow("Value paid",paidVal,tot,rmShort(paidVal))+`</div>`;
+  if(viewProgs().some(p=>p.fields.some(x=>x.k==="invoice"))) { const ri=rowsExcept("invoice"), inv=ri.filter(p=>p.invoice==="Received").length; h+=ratioRow("Invoice received",inv,ri.length,`${inv} / ${ri.length}`,"invoice","Received"); }
+  h+=ratioRow("Paid",paid.length,np,`${paid.length} / ${np}`,"payment","Paid")+ratioRow("Not paid",np-paid.length,np,`${np-paid.length} / ${np}`,"payment","Not Paid",true)+ratioRow("Value paid",paidVal,tot,rmShort(paidVal))+`</div>`;
   const ids=new Set(rows.map(programmeOf)), hi=[], notes=[];
   if(ids.has("solar")){
     const sr=rows.filter(p=>programmeOf(p)==="solar");
@@ -480,12 +586,13 @@ function renderLower(rows){
   }
   const houses=rows.filter(p=>["pbj","pmr"].includes(programmeOf(p)));
   if(houses.length){
-    const done=houses.filter(p=>p.status==="Completed").length, uc=houses.filter(p=>p.status==="Under construction");
-    hi.push(ratioRow("Houses completed",done,houses.length,`${done} / ${houses.length}`));
-    if(uc.length){ const withP=uc.filter(p=>p.progress!=null); hi.push(plainRow("Under construction",`${uc.length}${withP.length?` · avg ${Math.round(sum(withP,"progress")/withP.length)}%`:""}`)); }
+    const rs=rowsExcept("stage").filter(p=>["pbj","pmr"].includes(programmeOf(p)));
+    const done=rs.filter(p=>p.status==="Completed").length, uc=houses.filter(p=>p.status==="Under construction");
+    hi.push(ratioRow("Houses completed",done,rs.length,`${done} / ${rs.length}`,"stage","done"));
+    if(uc.length){ const withP=uc.filter(p=>p.progress!=null); hi.push(plainRow("Under construction",`${uc.length}${withP.length?` · avg ${Math.round(sum(withP,"progress")/withP.length)}%`:""}`,"status","Under construction")); }
     const cv=sum(houses,"contractValue"); if(cv) hi.push(plainRow("Contract value",rmShort(cv)));
-    const funds={}; houses.forEach(p=>{ const k=p.fund||"Not recorded"; funds[k]=(funds[k]||0)+(+p.value||0); });
-    if(Object.keys(funds).length>1||!funds["Not recorded"]) Object.entries(funds).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>hi.push(plainRow(`Fund: ${esc(k)}`,rmShort(v))));
+    const funds={}; rowsExcept("fund").filter(p=>["pbj","pmr"].includes(programmeOf(p))).forEach(p=>{ const k=p.fund||NR; funds[k]=(funds[k]||0)+(+p.value||0); });
+    if(Object.keys(funds).length>1||!funds[NR]) Object.entries(funds).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>hi.push(plainRow(`Fund: ${esc(k)}`,rmShort(v),"fund",k)));
   }
   const reach=(prog,k,label)=>{ const r=rows.filter(p=>prog.includes(programmeOf(p))); if(!r.length) return; const t=sum(r,k), d=sum(r.filter(p=>p.status==="Completed"),k); hi.push(t?ratioRow(label,d,t,`${d.toLocaleString()} / ${t.toLocaleString()}`):plainRow(label,"—")); };
   reach(["ceria","jek"],"students","Students reached"); reach(["hoki"],"players","Hockey players"); reach(["tree"],"trees","Trees planted"); reach(["vehicle"],"vehicles","Vehicles handed over");
@@ -495,8 +602,10 @@ function renderLower(rows){
 }
 function render(){
   renderNav();
-  const all=filtered(true), rows=filtered(false);
-  renderTitle(); renderKpis(all); renderPipe(all); renderMap(rows); renderLegend(all); renderLower(all);
+  BASE=baseRows();
+  for(const d in S.f) if(!S.f[d].size) delete S.f[d];
+  const rows=filtered();
+  renderTitle(); renderActive(); renderKpis(rows); renderPipe(); renderMap(rows); renderLegend(rows); renderLower(rows); renderSlicers();
   if(!S.editing || !$("editForm")){ renderList(rows); renderSide(); }
   else renderList(rows);
   $("addBtn").hidden=!S.canWrite; $("importBtn").hidden=!S.canWrite;
@@ -512,12 +621,23 @@ $("fYear").innerHTML=`<option value="">All years (${YEARS[0]}–${YEARS.at(-1)})
 $("fYear").onchange=e=>{S.year=e.target.value; try{localStorage.setItem("csr-year",S.year)}catch(e){} S.sel=null; render();};
 $("importBtn").onclick=()=>$("importAny").click();
 $("importAny").onchange=e=>{ const fl=e.target.files[0]; e.target.value=""; if(fl) importFile(fl); };
-STATES.forEach(s=>$("fState").insertAdjacentHTML("beforeend",`<option>${s}</option>`));
-COMPONENTS.forEach(s=>$("fComp").insertAdjacentHTML("beforeend",`<option>${s}</option>`));
-$("fState").onchange=e=>{S.state=e.target.value;render();};
-$("fComp").onchange=e=>{S.comp=e.target.value;render();};
+/* one click handler for every filterable element */
+document.addEventListener("click",e=>{
+  const add=e.ctrlKey||e.metaKey||e.shiftKey;
+  const cl=e.target.closest("[data-clear]"); if(cl){ clearF(cl.dataset.clear==="*"?null:cl.dataset.clear); return; }
+  const mt=e.target.closest("[data-metric]"); if(mt){ S.metric=mt.dataset.metric; render(); return; }
+  const kc=e.target.closest("[data-kclear]"); if(kc){ clearF(null); return; }
+  const kd=e.target.closest("[data-kd]"); if(kd){ setF(kd.dataset.kd,kd.dataset.kv.split("|")); return; }
+  const seg=e.target.closest("[data-fd2]"), row=e.target.closest("[data-fd]");
+  if(seg && row){ S.f[row.dataset.fd]=new Set([row.dataset.fv]); const d2=seg.dataset.fd2, v2=seg.dataset.fv2; if(isOn(d2,v2)&&S.f[d2].size===1) delete S.f[d2]; else S.f[d2]=new Set([v2]); S.sel=null; render(); return; }
+  if(row){ pickF(row.dataset.fd,row.dataset.fv,add); }
+});
+document.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ") && e.target.matches("[role=button][data-fd],[role=button][data-kd],[role=button][data-kclear]")){ e.preventDefault(); e.target.click(); } });
+$("slicerBtn").onclick=()=>{ const p=$("slicerPanel"); p.hidden=!p.hidden; $("slicerBtn").setAttribute("aria-expanded",String(!p.hidden)); renderSlicers(); };
+$("slicerPanel").addEventListener("change",e=>{ const c=e.target.closest("input[type=checkbox][data-dim]"); if(c) pickF(c.dataset.dim,c.dataset.v,true); });
+$("slicerPanel").addEventListener("input",e=>{ const q=e.target.closest(".slicer-q"); if(!q) return; SL.q[q.dataset.dim]=q.value; const t=q.value.toLowerCase(); q.closest(".slicer").querySelectorAll(".slicer-list label").forEach(l=>l.hidden=!!t&&!l.textContent.toLowerCase().includes(t)); });
+$("fSort").onchange=e=>{ S.sort=e.target.value; render(); };
 $("fSearch").oninput=e=>{S.q=e.target.value;render();};
-$("pipeLegend").addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return; S.status = S.status===b.dataset.s ? "" : b.dataset.s; render();});
 $("list").addEventListener("click",e=>{const b=e.target.closest(".item"); if(b) select(b.dataset.id,true);});
 $("viewPen").onclick=()=>M.fit&&M.fit(PEN);
 $("viewAll").onclick=()=>M.fit&&M.fit(ALL);
@@ -540,7 +660,7 @@ function exportRows(p){
 }
 $("exportBtn").onclick=()=>{
   if(!window.XLSX){ toast("Export isn’t available right now"); return; }
-  const rows=filtered(false); if(!rows.length){ toast("Nothing to export in this view"); return; }
+  const rows=filtered(); if(!rows.length){ toast("Nothing to export in this view"); return; }
   const wb=XLSX.utils.book_new();
   for(const pr of PROGRAMMES){
     const r=rows.filter(p=>programmeOf(p)===pr.id); if(!r.length) continue;

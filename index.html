@@ -63,6 +63,44 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .prog{display:inline-block;width:80px;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;vertical-align:middle}
 .prog span{display:block;height:100%;background:var(--s-ongoing)}
 .card h2+.bars{margin-top:-4px}
+.kpi.click{cursor:pointer;transition:background .15s}
+.kpi.click:hover{background:var(--surface-2)}
+.kpi.on{background:color-mix(in srgb,var(--accent) 18%,var(--surface));box-shadow:inset 0 -3px 0 var(--accent)}
+.kpi.off{opacity:.55}
+.kpi-sub{align-self:flex-start;border:0;background:none;padding:0;font-size:.75rem;color:var(--muted);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.kpi-sub.on{color:var(--fg);font-weight:700}
+.bar.click{cursor:pointer;border-radius:6px;padding:3px 6px;margin:-3px -6px}
+.bar.click:hover{background:var(--surface-2)}
+.bar.on{background:color-mix(in srgb,var(--accent) 16%,transparent)}
+.bar.off,.pipe-bar .seg.off,.pipe-legend button.off{opacity:.35}
+.pipe-bar .seg{cursor:pointer}
+.bar .seg{cursor:pointer}
+.bar .seg:hover,.pipe-bar .seg:hover{filter:brightness(1.12)}
+.card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card-head h2{margin-right:auto}
+.card-head select{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:4px 8px;font-size:.85rem}
+.seg-toggle{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg-toggle button{border:0;background:var(--surface);padding:4px 10px;font-size:.78rem;font-weight:700}
+.seg-toggle button+button{border-left:1px solid var(--line)}
+.seg-toggle button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.active-filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fchip{border:1px solid color-mix(in srgb,var(--accent) 60%,var(--line));background:color-mix(in srgb,var(--accent) 14%,var(--surface));border-radius:999px;padding:4px 10px;font-size:.82rem;text-align:left}
+.badge{display:inline-block;min-width:18px;padding:0 5px;border-radius:9px;background:var(--accent);color:#1d1300;font-size:.72rem;font-weight:800;text-align:center}
+.slicers{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.slicer-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.slicer-head .btn{margin-left:auto}
+.slicer-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.slicer{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.slicer-t{display:flex;justify-content:space-between;align-items:center;font-size:.78rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.linkbtn{border:0;background:none;padding:0;color:var(--s-ongoing);font-weight:600;font-size:.78rem;text-transform:none;letter-spacing:0}
+.slicer-q{border:1px solid var(--line);background:var(--bg);border-radius:6px;padding:5px 8px;font-size:.85rem;min-width:0}
+.slicer-list{max-height:190px;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.slicer-list label{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;font-size:.85rem;padding:2px 2px;cursor:pointer}
+.slicer-list label span:nth-child(2){overflow-wrap:anywhere}
+.slicer-list label.zero{opacity:.45}
+.slicer-list .num{font-size:.78rem;color:var(--muted)}
+.side-tools{display:flex;align-items:center;gap:8px}
+#fSort{border:1px solid var(--line);background:var(--surface);border-radius:7px;padding:4px 6px;font-size:.8rem;max-width:150px}
 .filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:600;font-size:.85rem;display:inline-flex;align-items:center;gap:6px}
@@ -228,10 +266,12 @@ form.edit textarea{min-height:64px;resize:vertical}
   <div class="filters">
     <div class="chips" id="typeChips" role="group" aria-label="Solar type" hidden></div>
     <select id="fYear" aria-label="Year"></select>
-    <select id="fState" aria-label="State"><option value="">All states</option></select>
-    <select id="fComp" aria-label="Component"><option value="">All components</option></select>
+    <button class="btn" id="slicerBtn" type="button" aria-expanded="false" aria-controls="slicerPanel">Filters</button>
     <input id="fSearch" type="search" placeholder="Search name, district, agency, vendor, school…" aria-label="Search">
   </div>
+
+  <section class="slicers" id="slicerPanel" hidden aria-label="Filters"></section>
+  <div class="active-filters" id="activeFilters" hidden></div>
 
   <section class="kpis" id="kpis" aria-label="Summary"></section>
 
@@ -253,7 +293,7 @@ form.edit textarea{min-height:64px;resize:vertical}
     </div>
 
     <aside class="side" id="side">
-      <div class="side-head"><h2 id="sideTitle">Projects</h2><span class="status-line" id="listCount"></span></div>
+      <div class="side-head"><h2 id="sideTitle">Projects</h2><span class="side-tools"><select id="fSort" aria-label="Sort list"><option value="default">Sort: default</option><option value="value">Value, high to low</option><option value="name">Name A–Z</option><option value="status">Status</option><option value="state">State / district</option><option value="progress">Build progress</option><option value="updated">Recently updated</option></select><span class="status-line" id="listCount"></span></span></div>
       <div class="list" id="list"><div class="empty">Loading projects…</div></div>
       <div class="detail" id="detail" hidden></div>
     </aside>
@@ -261,9 +301,13 @@ form.edit textarea{min-height:64px;resize:vertical}
 
   <section class="lower">
     <div class="card">
-      <h2>Value by state</h2>
+      <div class="card-head" id="stateHead"></div>
       <div class="bars" id="stateBars"></div>
       <div class="note" id="stateNote"></div>
+    </div>
+    <div class="card" id="brkCard">
+      <div class="card-head" id="brkHead"></div>
+      <div class="bars" id="brkBars"></div>
     </div>
     <div class="card" id="card2"></div>
   </section>
