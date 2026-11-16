@@ -51,9 +51,11 @@ const PROGRAMMES = [
   { id:"ceria", pillar:"edu", name:"Ceria Ke Sekolah", short:"Ceria Ke Sekolah", unit:["school","schools"], statuses:GEN_ST, valueLabel:"Value",
     blurb:"School essentials for pupils from low-income families.",
     fields:[...SCHOOL_HEAD("Programme name"),f("students","Students reached","num"),f("value","Value (RM)","money"),f("appDate","Request received","date"),f("eventDate","Programme date","date"),PAYMENT,REMARKS] },
-  { id:"jek", pillar:"edu", name:"Sekolah Angkat JEK", short:"Sekolah Angkat JEK", unit:["school","schools"], statuses:GEN_ST, valueLabel:"Value",
-    blurb:"Schools adopted under the JEK programme.",
-    fields:[...SCHOOL_HEAD("Programme name"),f("students","Students reached","num"),f("value","Value (RM)","money"),f("appDate","Request received","date"),f("startDate","Start date","date"),f("completionDate","Completion date","date"),PAYMENT,REMARKS] },
+  { id:"jek", pillar:"edu", name:"Sekolah Angkat JEK", short:"Sekolah Angkat JEK", unit:["contribution","contributions"], statuses:GEN_ST, valueLabel:"Contributions",
+    blurb:"Schools adopted by members of the TNB Executive Committee (JEK), and the contributions made to them.",
+    fields:[f("name","Contribution","text",{full:1,req:1}),f("school","School","text",{full:1}),f("member","JEK member"),f("position","Position"),
+      f("category","Category","sel",{opts:["Education (ED)","Economic Social (ES)","Sports (SP)","Environment (ENV)"]}),STATUS,STATE,DISTRICT,YEAR,
+      f("value","Contribution (RM)","money"),f("students","Students reached","num"),f("appDate","Request received","date"),f("completionDate","Completion date","date"),PAYMENT,REMARKS] },
   { id:"pbj", pillar:"wakalah", name:"Projek Baiti Jannati (PBJ)", short:"PBJ", unit:["house","houses"], statuses:HOUSE_ST, valueLabel:"Approved amount",
     blurb:"Houses built or repaired for asnaf families.", fields:HOUSE_FIELDS },
   { id:"pmr", pillar:"eco", name:"Perumahan Mesra Rakyat (PMR)", short:"PMR", unit:["house","houses"], statuses:HOUSE_ST, valueLabel:"Approved amount",
@@ -118,6 +120,8 @@ const DIMS={
   component:{label:"Component",get:p=>p.component||NR,field:"component"},
   type:{label:"Solar type",get:p=>p.type||NR,field:"type"},
   school:{label:"School",get:p=>p.school||NR,field:"school"},
+  member:{label:"JEK member",get:p=>p.member||NR,field:"member"},
+  category:{label:"Category",get:p=>p.category||NR,field:"category"},
   partner:{label:"Partner",get:p=>p.partner||NR,field:"partner"},
   month:{label:"Month",get:p=>p.month||NR,field:"month"},
   year:{label:"Year",get:p=>String(projYear(p)||NR)},
@@ -368,7 +372,7 @@ function listMeta(p){
   if(p.district) bits.push(p.district); else if(p.state) bits.push(p.state);
   if(p.district && p.state) bits.push(p.state);
   if(pr.id==="solar") bits.push(p.type||"");
-  if(p.school && p.school!==p.name) bits.push(p.school);
+  if(p.school && p.school!==p.name) bits.push(p.school); if(p.member) bits.push(p.position?p.position.replace(/^.*\(([^()]+)\)\s*$/,"$1"):p.member);
   if((pr.id==="pbj"||pr.id==="pmr") && p.progress!=null && p.status!=="Completed") bits.push(`${p.progress}% built`);
   return bits.filter(Boolean).map(b=>`<span>${esc(b)}</span>`).join("");
 }
@@ -564,7 +568,7 @@ function renderLower(rows){
   $("stateBars").innerHTML=stackBars("state","Nothing matches these filters.");
   $("stateNote").textContent = `Click a state to filter everything; click a coloured part to filter by state and ${sp?"status":"stage"}. Ctrl/Shift-click to pick several.`;
   const opts=brkOptions();
-  if(!opts.includes(S.brk)) S.brk=opts.includes("prog")?"prog":opts.includes("agency")?"agency":opts.includes("district")?"district":opts[0]||"";
+  if(!opts.includes(S.brk)) S.brk=opts.includes("prog")?"prog":opts.includes("school")?"school":opts.includes("agency")?"agency":opts.includes("district")?"district":opts[0]||"";
   $("brkCard").hidden=!opts.length;
   if(opts.length){
     $("brkHead").innerHTML=`<h2>${S.metric==="count"?"Count":"Value"} by</h2><select id="brkSel" aria-label="Break down by">${opts.map(d=>`<option value="${d}" ${d===S.brk?"selected":""}>${esc(DIMS[d].label)}</option>`).join("")}</select>${metricBtns()}`;
@@ -781,9 +785,9 @@ async function importFile(fl){
   if(!db){ toast("Finish setup before importing."); return; }
   try{
     const rows=await readRows(fl);
-    const key=p=>`${projYear(p)}|${programmeOf(p)}|${String(p.name).toLowerCase().replace(/\s+/g," ").trim()}`;
+    const key=p=>`${projYear(p)}|${programmeOf(p)}|${String(p.name).toLowerCase().replace(/\s+/g," ").trim()}|${String(p.school||"").toLowerCase().trim()}`;
     const have=new Set([...S.projects.values()].map(key));
-    const seen=new Set(), fresh=rows.filter(r=>{ const k=key(r); if(have.has(k)||seen.has(k)||(r._seedId&&S.projects.has(r._seedId))) return false; seen.add(k); return true; });
+    const seen=new Set(), fresh=rows.filter(r=>{ const k=r._seedId?"id:"+r._seedId:key(r); if(seen.has(k)||(r._seedId?S.projects.has(r._seedId):have.has(k))) return false; seen.add(k); return true; });
     const skipped=rows.length-fresh.length;
     if(!fresh.length){ toast(rows.length?`Nothing new: all ${rows.length} records are already in the dashboard.`:"No records found in that file."); return; }
     const now=new Date().toISOString(), by=S.user?.email||"";
