@@ -3,13 +3,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     function access() { return get(/databases/$(database)/documents/config/access).data; }
     function email() { return request.auth != null && request.auth.token.email is string ? request.auth.token.email.lower() : ''; }
-    // Google accounts must have a verified email. Microsoft work accounts often report
-    // email_verified=false, so they are trusted through the provider instead (restrict the
-    // Azure app registration to TNB's directory so only TNB accounts can sign in).
-    function trusted() {
-      return request.auth != null && email() != '' &&
-        (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'microsoft.com');
-    }
+    function trusted() { return request.auth != null && email() != '' && request.auth.token.email_verified == true; }
     function isEditor() { return trusted() && email() in access().editors; }
     function isViewer() { return access().get('publicRead', false) == true || (trusted() && (email() in access().get('viewers', []) || isEditor())); }
 

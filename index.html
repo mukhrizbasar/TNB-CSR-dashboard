@@ -74,7 +74,7 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .kpi{background:var(--surface);padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .kpi .l{font-size:.75rem;color:var(--muted);font-weight:600}
-.kpi .v{font-family:var(--f-mono);font-size:1.5rem;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .v{font-family:var(--f-mono);font-size:1.5rem;font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;line-height:1.2}
 .kpi .h{font-size:.75rem;color:var(--muted)}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media (max-width:480px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -168,13 +168,15 @@ form.edit textarea{min-height:64px;resize:vertical}
 .lower{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
 @media (max-width:860px){.lower{grid-template-columns:minmax(0,1fr)}}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:12px;min-width:0}
-.bars{display:flex;flex-direction:column;gap:7px}
-.bar{display:grid;grid-template-columns:130px minmax(0,1fr) 96px;gap:10px;align-items:center;font-size:.85rem}
-.bar .track{height:12px;background:var(--surface-2);border-radius:3px;overflow:hidden;display:flex}
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;align-items:baseline;font-size:.85rem}
+.bar .track{grid-column:1/-1;height:12px;background:var(--surface-2);border-radius:3px;overflow:hidden;display:flex}
 .bar .track span{display:block;height:100%}
 .bar .n{font-family:var(--f-mono);font-size:.8rem;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.bar .lab{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media (max-width:480px){.bar{grid-template-columns:96px minmax(0,1fr) 78px}}
+.bar .lab{overflow-wrap:anywhere;grid-row:1;grid-column:1}
+.bar .n{grid-row:1;grid-column:2}
+.bar .track{grid-row:2}
+.bar .track:empty{display:none}
 .note{font-size:.78rem;color:var(--muted)}
 .toast{max-width:calc(100vw - 32px);text-align:center;position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:999px;font-weight:600;z-index:2000;box-shadow:0 4px 16px rgba(0,0,0,.25)}
 .status-line{font-size:.78rem;color:var(--muted)}
@@ -210,7 +212,6 @@ form.edit textarea{min-height:64px;resize:vertical}
     <div class="actions">
       <span class="status-line" id="who"></span>
       <button class="btn" id="signInBtn" type="button"><svg width="14" height="14" viewBox="0 0 48 48" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.6 5.4 2.7 13.3l7.9 6.1C12.5 13.6 17.8 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.6z"/><path fill="#FBBC05" d="M10.6 28.6c-.5-1.4-.8-3-.8-4.6s.3-3.2.8-4.6l-7.9-6.1C1 16.6 0 20.2 0 24s1 7.4 2.7 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.2 0-11.5-4.1-13.4-9.9l-7.9 6.1C6.6 42.6 14.6 48 24 48z"/></svg>Sign in with Google</button>
-      <button class="btn" id="msSignInBtn" type="button"><svg width="14" height="14" viewBox="0 0 22 22" aria-hidden="true" style="vertical-align:-2px;margin-right:6px"><path fill="#F25022" d="M0 0h10v10H0z"/><path fill="#7FBA00" d="M12 0h10v10H12z"/><path fill="#00A4EF" d="M0 12h10v10H0z"/><path fill="#FFB900" d="M12 12h10v10H12z"/></svg>Sign in with Microsoft</button>
       <button class="btn" id="signOutBtn" type="button" hidden>Sign out</button>
       <button class="btn" id="importBtn" type="button" hidden>Import list</button>
       <input type="file" id="importAny" accept=".xlsx,.xls,.json" hidden>

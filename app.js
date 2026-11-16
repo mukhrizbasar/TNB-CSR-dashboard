@@ -1,6 +1,6 @@
 import { CONFIG } from "./config.js";
 const FB="https://www.gstatic.com/firebasejs/10.12.2/";
-let initializeApp, getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, onAuthStateChanged, getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDoc, getDocs, updateDoc;
+let initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDoc, getDocs, updateDoc;
 
 /* ================= PILLARS, PROGRAMMES, FIELDS ================= */
 const SOLAR_ST = ["Site Visit","Pending Proposal","Pending Approval Memo","Approved","Ongoing","Completed"];
@@ -56,8 +56,8 @@ const PROGRAMMES = [
     fields:[...SCHOOL_HEAD("Programme name"),f("students","Students reached","num"),f("value","Value (RM)","money"),f("appDate","Request received","date"),f("startDate","Start date","date"),f("completionDate","Completion date","date"),PAYMENT,REMARKS] },
   { id:"pbj", pillar:"wakalah", name:"Projek Baiti Jannati (PBJ)", short:"PBJ", unit:["house","houses"], statuses:HOUSE_ST, valueLabel:"Approved amount",
     blurb:"Houses built or repaired for asnaf families.", fields:HOUSE_FIELDS },
-  { id:"pmr", pillar:"wakalah", name:"Perumahan Mesra Rakyat (PMR)", short:"PMR", unit:["house","houses"], statuses:HOUSE_ST, valueLabel:"Approved amount",
-    blurb:"Perumahan Mesra Rakyat houses.", fields:HOUSE_FIELDS },
+  { id:"pmr", pillar:"eco", name:"Perumahan Mesra Rakyat (PMR)", short:"PMR", unit:["house","houses"], statuses:HOUSE_ST, valueLabel:"Approved amount",
+    blurb:"Affordable homes under the Perumahan Mesra Rakyat programme.", fields:HOUSE_FIELDS },
   { id:"hoki", pillar:"sports", name:"Sekolah Hoki Angkat TNB", short:"Sekolah Hoki Angkat", unit:["school","schools"], statuses:GEN_ST, valueLabel:"Value",
     blurb:"Schools adopted for TNB's hockey development programme.",
     fields:[...SCHOOL_HEAD("Programme name"),f("players","Players","num"),f("coach","Coach"),f("value","Value (RM)","money"),f("appDate","Request received","date"),f("completionDate","Completion date","date"),PAYMENT,REMARKS] },
@@ -207,7 +207,7 @@ function renderMap(rows){
 }
 function renderLegend(rows){
   const seen=[...new Set(rows.map(shapeOf))];
-  const names={rooftop:"Solar rooftop",street:"Solar streetlight",both:"Rooftop + streetlight",dot:"Other environment",house:"House (PBJ / PMR)",school:"School",tree:"Tree planting",vehicle:"Vehicle donation"};
+  const names={rooftop:"Solar rooftop",street:"Solar streetlight",both:"Rooftop + streetlight",dot:"Other environment",house:"House",school:"School",tree:"Tree planting",vehicle:"Vehicle donation"};
   const order=Object.keys(names).filter(k=>seen.includes(k));
   $("mapLegend").innerHTML=order.map(k=>`<div class="row">${pinSvg(k,"var(--muted)",false,false,14)}${names[k]}</div>`).join("")+
     (rows.some(p=>p.lat!=null&&!p.locVerified)?`<div class="row">${pinSvg("rooftop","var(--muted)",true,false,14)}Approximate location</div>`:"");
@@ -557,36 +557,27 @@ render();
 initMap().then(render);
 
 if(!configured){
-  $("signInBtn").hidden=true; $("msSignInBtn").hidden=true; S.loaded=true;
+  $("signInBtn").hidden=true; S.loaded=true;
   $("syncNote").textContent="Setup needed: add the Firebase settings to config.js (see SETUP.md).";
   render();
 } else {
   startFirebase().catch(e=>{ console.error(e); $("syncNote").textContent="Couldn’t connect to the database: "+(e.message||e); });
 }
 const userEmail = u => (u && (u.email || (u.providerData||[]).map(x=>x.email).find(Boolean)) || "").toLowerCase();
-function signInError(e,which){
+function signInError(e){
   if(e.code==="auth/popup-closed-by-user"||e.code==="auth/cancelled-popup-request") return;
-  if(e.code==="auth/account-exists-with-different-credential") return toast(`This email already signs in with ${which==="Microsoft"?"Google":"Microsoft"}. Use that button instead.`);
-  if(e.code==="auth/operation-not-allowed") return toast(`${which} sign-in isn’t switched on yet. See SETUP.md.`);
   toast("Sign-in didn’t finish: "+e.code);
 }
 async function startFirebase(){
   const [a,b,c]=await Promise.all([import(FB+"firebase-app.js"),import(FB+"firebase-auth.js"),import(FB+"firebase-firestore.js")]);
-  ({initializeApp}=a); ({getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, onAuthStateChanged}=b); ({getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDoc, getDocs, updateDoc}=c);
+  ({initializeApp}=a); ({getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged}=b); ({getFirestore, collection, doc, onSnapshot, setDoc, deleteDoc, writeBatch, getDoc, getDocs, updateDoc}=c);
   const app=initializeApp(CONFIG.firebase); db=getFirestore(app); auth=getAuth(app);
-  $("signInBtn").onclick=()=>signInWithPopup(auth,new GoogleAuthProvider()).catch(e=>signInError(e,"Google"));
-  if(CONFIG.microsoft && CONFIG.microsoft.enabled===false) $("msSignInBtn").hidden=true;
-  $("msSignInBtn").onclick=()=>{
-    const pv=new OAuthProvider("microsoft.com");
-    pv.setCustomParameters({prompt:"select_account",...(CONFIG.microsoft?.tenant?{tenant:CONFIG.microsoft.tenant}:{})});
-    signInWithPopup(auth,pv).catch(e=>signInError(e,"Microsoft"));
-  };
+  $("signInBtn").onclick=()=>signInWithPopup(auth,new GoogleAuthProvider()).catch(signInError);
   $("signOutBtn").onclick=()=>signOut(auth);
   let unsub=null;
   onAuthStateChanged(auth, async user=>{
     S.user=user?{email:userEmail(user)}:null; S.canWrite=false;
-    const msOk=!(CONFIG.microsoft && CONFIG.microsoft.enabled===false);
-    $("signInBtn").hidden=!!user; $("msSignInBtn").hidden=!!user||!msOk; $("signOutBtn").hidden=!user; $("who").textContent=user?S.user.email:"";
+    $("signInBtn").hidden=!!user; $("signOutBtn").hidden=!user; $("who").textContent=user?S.user.email:"";
     if(unsub){ unsub(); unsub=null; }
     S.projects=new Map(); S.loaded=false; render();
     if(user){

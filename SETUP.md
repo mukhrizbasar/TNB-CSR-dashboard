@@ -64,9 +64,9 @@ Open the site, click **Sign in with Google** with an editor email. The list will
 | Pillar | Programmes | What each record is |
 |---|---|---|
 | Environment | Solar Rooftop & Streetlight, Tree for a Tree, Other environment projects | a project |
-| Economic Social | Sumbangan Kenderaan Terpakai | a vehicle donation |
+| Economic Social | Sumbangan Kenderaan Terpakai, Perumahan Mesra Rakyat (PMR) | a vehicle donation, a house |
 | Education | Ceria Ke Sekolah, Sekolah Angkat JEK | a school |
-| Wakalah | Projek Baiti Jannati (PBJ), Perumahan Mesra Rakyat (PMR) | a house |
+| Wakalah | Projek Baiti Jannati (PBJ) | a house |
 | Sports | Sekolah Hoki Angkat TNB | a school |
 
 Each programme has its own form fields and statuses:
@@ -84,28 +84,3 @@ An editor opens the dashboard, clicks **Import list** and picks `pbj-pmr-seed.js
 - House pins are placed at the town or district, not the house. Open a house, click **Edit**, then **Pick on map** to set the exact spot.
 - Importing the same file twice is safe: houses already in the dashboard are skipped.
 
-## Sign in with Microsoft
-The **Sign in with Microsoft** button lets people use their TNB Microsoft (Outlook / Office 365) account. It needs a one-time setup in two places. The Azure part usually needs TNB IT, because it is done in TNB's Microsoft directory.
-
-**A. Firebase (you)**
-1. Firebase console > **Authentication > Sign-in method > Add new provider > Microsoft**. Turn it on.
-2. Copy the **callback URL** it shows. It is `https://csr-solar-dashboard.firebaseapp.com/__/auth/handler`.
-3. Leave the window open: you will paste two values from step B.
-
-**B. Azure app registration (TNB IT, or anyone allowed to register apps in TNB's directory)**
-1. Go to https://portal.azure.com > **Microsoft Entra ID > App registrations > New registration**.
-2. Name: `TNB CSR Dashboard`. Supported account types: **Accounts in this organizational directory only (single tenant)**. This keeps sign-in to TNB accounts only.
-3. Redirect URI: platform **Web**, paste the callback URL from A2. Click **Register**.
-4. Copy the **Application (client) ID** and the **Directory (tenant) ID** from the Overview page.
-5. **Certificates & secrets > New client secret**. Copy the secret **Value** (it is shown once).
-
-**C. Finish in Firebase**
-1. Paste the client ID as **Application ID** and the secret **Value** as **Application secret**, then **Save**.
-2. In `config.js`, set `microsoft: { enabled: true, tenant: "PASTE-DIRECTORY-TENANT-ID" }`. This sends people straight to TNB's sign-in page. (Needed for single-tenant apps.)
-3. Firestore > **Rules**: paste the latest `firestore.rules` and **Publish**. The new rules accept Microsoft accounts, which often don't report a "verified" email.
-4. Add the person's Microsoft email (for example `name@tnb.com.my`) to `editors` or `viewers` in `config/access`, in lowercase.
-
-Notes
-- If someone already signed in with Google using the same email, Firebase will ask them to keep using Google. Either button works for anyone whose email is on the list.
-- Client secrets expire (Azure's maximum is 2 years). Put a reminder to create a new one and paste it into Firebase before then.
-- If you don't want the Microsoft button yet, set `enabled: false` in `config.js`.
