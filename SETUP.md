@@ -7,7 +7,7 @@ The project data is never stored in the repository: it lives only in Firebase.
 You need a Google account and a GitHub account. Total time is about 20 minutes.
 
 ## 1. Firebase (database and sign-in)
-1. Go to https://console.firebase.google.com and click **Create a project**. Any name works, for example `csr-solar-dashboard`. Google Analytics is not needed.
+1. Go to https://console.firebase.google.com and click **Create a project**. Any name works, for example `tnb-csr-dashboard`. Google Analytics is not needed.
 2. **Build > Firestore Database > Create database.** Choose location `asia-southeast1 (Singapore)` and start in **production mode**.
 3. In Firestore, open the **Rules** tab, replace everything with the contents of `firestore.rules`, and click **Publish**.
 4. In Firestore **Data**, click **Start collection**:
@@ -34,10 +34,12 @@ Google Maps needs a billing account on the same Google Cloud project. Normal use
 If you leave `googleMapsKey` empty, the app uses a free OpenStreetMap street map with a satellite option instead.
 
 ## 3. Publish on GitHub Pages
-1. Create a new repository on GitHub, for example `csr-solar-dashboard` (private is fine on paid plans; public on free plans).
+1. Create a new repository on GitHub, for example `tnb-csr-dashboard` (private is fine on paid plans; public on free plans).
 2. Upload all files from this folder to it.
-3. **Settings > Pages**: Source **Deploy from a branch**, branch `main`, folder `/ (root)`. The site appears at `https://YOUR-GITHUB-NAME.github.io/csr-solar-dashboard/` after a minute.
+3. **Settings > Pages**: Source **Deploy from a branch**, branch `main`, folder `/ (root)`. The site appears at `https://YOUR-GITHUB-NAME.github.io/tnb-csr-dashboard/` after a minute.
 4. Back in Firebase: **Authentication > Settings > Authorized domains > Add domain**: `YOUR-GITHUB-NAME.github.io`.
+
+**Renaming the site later.** The web address follows the repository name. To change it, rename the repository in GitHub **Settings > General > Repository name** (this dashboard is at `https://mukhrizbasar.github.io/TNB-CSR-dashboard/`). The old address stops working; GitHub does not redirect Pages sites, so share the new link. Firebase needs no change, because the domain `YOUR-GITHUB-NAME.github.io` stays the same. The Firebase project ID in `config.js` (`csr-solar-dashboard`) is fixed by Google and can't be renamed; it is never shown to users.
 
 ## 4. First run
 Open the site, click **Sign in with Google** with an editor email. The list will be empty with an **Import projects file** button. Click it and choose `seed-projects.json` (sent to you separately, not kept in GitHub). Do this once.
