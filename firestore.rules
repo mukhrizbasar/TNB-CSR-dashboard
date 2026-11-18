@@ -11,7 +11,11 @@ service cloud.firestore {
     match /projects/{id} { allow read: if isViewer(); allow write: if isEditor(); }
     match /projects/{id}/photos/{photoId} {
       allow read: if isViewer();
-      allow write: if isEditor() && (request.resource == null || request.resource.data.data.size() < 1000000);
+      // At most 2 photos per project: new photos may only use the ids "1" and "2".
+      allow create: if isEditor() && photoId in ['1', '2'] && request.resource.data.data.size() < 1000000;
+      // Editing a photo may change its caption, not swap the picture.
+      allow update: if isEditor() && request.resource.data.data == resource.data.data;
+      allow delete: if isEditor();
     }
   }
 }

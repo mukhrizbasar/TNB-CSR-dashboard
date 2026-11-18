@@ -6,11 +6,12 @@ let initializeApp, getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuth
 const SOLAR_ST = ["Site Visit","Pending Proposal","Pending Approval Memo","Approved","Ongoing","Completed"];
 const HOUSE_ST = ["Application received","Approved","Vendor appointed","Under construction","Completed","Rejected"];
 const GEN_ST = ["Planning","Approved","Ongoing","Completed"];
+const CKS_ST = ["Planning","Date confirmed","Completed"];
 const SVAR = {"Site Visit":"--s-visit","Pending Proposal":"--s-proposal","Pending Approval Memo":"--s-memo","Approved":"--s-approved","Ongoing":"--s-ongoing","Completed":"--s-done",
-  "Application received":"--s-proposal","Vendor appointed":"--s-vendor","Under construction":"--s-ongoing","Planning":"--s-proposal","Rejected":"--s-rejected"};
+  "Application received":"--s-proposal","Vendor appointed":"--s-vendor","Under construction":"--s-ongoing","Planning":"--s-proposal","Date confirmed":"--s-approved","Rejected":"--s-rejected"};
 const STAGES = [["pipeline","In pipeline","--s-proposal"],["approved","Approved","--s-approved"],["progress","In progress","--s-ongoing"],["done","Completed","--s-done"],["rejected","Rejected","--s-rejected"]];
 const STAGE_OF = {"Site Visit":"pipeline","Pending Proposal":"pipeline","Pending Approval Memo":"pipeline","Application received":"pipeline","Planning":"pipeline",
-  "Approved":"approved","Vendor appointed":"approved","Ongoing":"progress","Under construction":"progress","Completed":"done","Rejected":"rejected"};
+  "Approved":"approved","Vendor appointed":"approved","Date confirmed":"approved","Ongoing":"progress","Under construction":"progress","Completed":"done","Rejected":"rejected"};
 const TYPES = ["Solar Rooftop","Solar Streetlight","Rooftop + Streetlight","Other"];
 const STATES = ["Johor","Kedah","Kelantan","Malacca","Negeri Sembilan","Pahang","Perak","Perlis","Penang","Sabah","Sarawak","Selangor","Terengganu","W.P. Kuala Lumpur","W.P. Labuan","W.P. Putrajaya","Nationwide"];
 const COMPONENTS = ["Komuniti Lestari","Tree for a Tree","Pulau Tenaga Hijau","Biodiversity","Firefly Conservation","Extinction Species"];
@@ -48,9 +49,12 @@ const PROGRAMMES = [
     blurb:"Used TNB vehicles donated to community organisations.",
     fields:[f("name","Donation name","text",{full:1,req:1}),f("recipient","Recipient organisation","text",{full:1}),STATUS,STATE,DISTRICT,YEAR,
       f("vehicleType","Vehicle type"),f("vehicles","Number of vehicles","num"),f("value","Value (RM)","money"),f("appDate","Request received","date"),f("handoverDate","Handover date","date"),PAYMENT,REMARKS] },
-  { id:"ceria", pillar:"edu", name:"Ceria Ke Sekolah", short:"Ceria Ke Sekolah", unit:["school","schools"], statuses:GEN_ST, valueLabel:"Value",
-    blurb:"School essentials for pupils from low-income families.",
-    fields:[...SCHOOL_HEAD("Programme name"),f("students","Students reached","num"),f("value","Value (RM)","money"),f("appDate","Request received","date"),f("eventDate","Programme date","date"),PAYMENT,REMARKS] },
+  { id:"ceria", pillar:"edu", name:"Ceria Ke Sekolah (CKS)", short:"CKS", unit:["handover","handovers"], statuses:CKS_ST, valueLabel:"Contribution",
+    blurb:"RM100 school vouchers for pupils from low-income families, handed over in each YB's area.",
+    fields:[f("name","Handover name","text",{full:1,req:1}),f("yb","YB","text",{full:1}),f("position","Position","text",{full:1}),STATUS,STATE,f("district","Area (Parlimen / DUN)"),YEAR,
+      f("students","Recipients (pupils)","num"),f("value","Contribution (RM)","money"),f("eventDate","Handover date","date"),f("venue","Handover venue","text",{full:1}),
+      f("method","Method","sel",{opts:["Handover event with YB / Minister","Shopping with pupils at a store","Handover at YB / Minister's office"]}),f("vendor","Vendor"),
+      f("folder","Photos & recipient list (link)","url",{full:1}),PAYMENT,REMARKS] },
   { id:"jek", pillar:"edu", name:"Sekolah Angkat JEK", short:"Sekolah Angkat JEK", unit:["contribution","contributions"], statuses:GEN_ST, valueLabel:"Contributions",
     blurb:"Schools adopted by members of the TNB Executive Committee (JEK), and the contributions made to them.",
     fields:[f("name","Contribution","text",{full:1,req:1}),f("school","School","text",{full:1}),f("member","JEK member"),f("position","Position"),
@@ -100,7 +104,7 @@ function baseRows(){
   const q=S.q.trim().toLowerCase(), ids=new Set(viewProgs().map(p=>p.id));
   return [...S.projects.values()].filter(p=>{
     if(!ids.has(programmeOf(p)) || !typeMatch(p) || !inYear(p)) return false;
-    if(q && ![p.name,p.remarks,p.state,p.district,p.recipient,p.agency,p.school,p.vendor,p.address,p.component].join(" ").toLowerCase().includes(q)) return false;
+    if(q && ![p.name,p.remarks,p.state,p.district,p.recipient,p.agency,p.school,p.vendor,p.address,p.component,p.yb,p.member,p.venue].join(" ").toLowerCase().includes(q)) return false;
     return true;
   });
 }
@@ -121,6 +125,8 @@ const DIMS={
   type:{label:"Solar type",get:p=>p.type||NR,field:"type"},
   school:{label:"School",get:p=>p.school||NR,field:"school"},
   member:{label:"JEK member",get:p=>p.member||NR,field:"member"},
+  yb:{label:"YB",get:p=>p.yb||NR,field:"yb"},
+  method:{label:"Method",get:p=>p.method||NR,field:"method"},
   category:{label:"Category",get:p=>p.category||NR,field:"category"},
   partner:{label:"Partner",get:p=>p.partner||NR,field:"partner"},
   month:{label:"Month",get:p=>p.month||NR,field:"month"},
@@ -411,6 +417,7 @@ function fmtField(fd,p){
   if(fd.t==="pct") return `<span class="prog"><span style="width:${Math.max(0,Math.min(100,+v))}%"></span></span> <span class="num">${v}%</span>`;
   if(fd.flag) return `<span class="flag ${v===fd.flag?"ok":"no"}">${esc(v)}</span>`;
   if(fd.t==="area") return esc(v).replace(/\n/g,"<br>");
+  if(fd.t==="url") return /^https?:\/\//i.test(v)?`<a href="${esc(v)}" target="_blank" rel="noopener">Open ↗</a>`:esc(v);
   return esc(v);
 }
 function renderSide(){
@@ -431,7 +438,7 @@ function renderSide(){
     <dl class="dl">${rows.map(([fd,h])=>`<dt>${esc(fd.label)}</dt><dd>${h}</dd>`).join("")}
       <dt>Remarks</dt><dd>${esc(p.remarks||"—")}</dd></dl>
     <div class="photos-box">
-      <div class="photos-head"><strong>Photos</strong>${S.canWrite?`<button class="btn small" type="button" id="addPhotosBtn">+ Add photos</button>`:""}</div>
+      <div class="photos-head"><strong>Photos <span class="status-line" id="photoCount"></span></strong>${S.canWrite?`<button class="btn small" type="button" id="addPhotosBtn">+ Add photos</button>`:""}</div>
       <div id="photoGrid" class="photo-grid"></div>
     </div>
     <div class="loc">
@@ -462,6 +469,7 @@ function fieldInput(fd,p,pr){
     case "money": inp=`<input id="${id}" name="${fd.k}" type="number" step="0.01" min="0" inputmode="decimal" value="${v??""}">`; break;
     case "num": inp=`<input id="${id}" name="${fd.k}" type="number" step="any" min="0" value="${v??""}">`; break;
     case "pct": inp=`<input id="${id}" name="${fd.k}" type="number" step="1" min="0" max="100" value="${v??""}">`; break;
+    case "url": inp=`<input id="${id}" name="${fd.k}" type="url" placeholder="https://" value="${esc(v??"")}">`; break;
     case "date": inp=`<input id="${id}" name="${fd.k}" type="date" value="${esc(v||"")}">`; break;
     case "area": inp=`<textarea id="${id}" name="${fd.k}">${esc(v||"")}</textarea>`; break;
     case "checks": return `<fieldset class="full checks"><legend>${esc(fd.label)}</legend>${fd.keys.map(([k,l])=>`<label><input type="checkbox" name="${fd.k}.${k}" ${(v||{})[k]?"checked":""}>${esc(l)}</label>`).join("")}</fieldset>`;
@@ -799,7 +807,10 @@ async function importFile(fl){
 
 /* ================= PHOTOS =================
    Stored in Firestore (no billing needed): projects/{id}/photos/{photoId}
-   Each photo is shrunk in the browser to fit well under Firestore's 1 MB document limit. */
+   Each photo is shrunk in the browser to fit well under Firestore's 1 MB document limit.
+   At most MAX_PHOTOS per project. New photos use the slot ids "1" and "2", which firestore.rules also enforces. */
+const MAX_PHOTOS=2, PHOTO_SLOTS=["1","2"];
+const freeSlots=()=>PHOTO_SLOTS.filter(id=>!PH.list.some(x=>x._id===id)).slice(0,Math.max(0,MAX_PHOTOS-PH.list.length));
 function syncPhotos(){
   const want = db && S.sel && !S.editing ? S.sel : null;
   if(want===PH.for) return;
@@ -814,11 +825,14 @@ function syncPhotos(){
 }
 function renderPhotos(msg){
   const g=$("photoGrid"); if(!g) return;
+  const full=PH.list.length+(PH.busy||0)>=MAX_PHOTOS, btn=$("addPhotosBtn");
+  if(btn){ btn.disabled=!db||PH.loading||full; btn.title=full?`Each project can have ${MAX_PHOTOS} photos. Delete one to add another.`:""; btn.textContent=MAX_PHOTOS-PH.list.length===1?"+ Add photo":"+ Add photos"; }
+  if($("photoCount")) $("photoCount").textContent=db&&!PH.loading?`${PH.list.length} / ${MAX_PHOTOS}`:"";
   if(msg){ g.innerHTML=`<span class="status-line">${esc(msg)}</span>`; return; }
   if(!db){ g.innerHTML=`<span class="status-line">Photos are available once setup is finished.</span>`; return; }
   const busy = PH.busy?`<div class="ph-tile ph-busy">Uploading ${PH.busy}…</div>`:"";
   if(PH.loading){ g.innerHTML=`<span class="status-line">Loading photos…</span>`; return; }
-  if(!PH.list.length && !PH.busy){ g.innerHTML=`<span class="status-line">No photos yet.${S.canWrite?" Add site visit, progress or completion photos.":""}</span>`; return; }
+  if(!PH.list.length && !PH.busy){ g.innerHTML=`<span class="status-line">No photos yet.${S.canWrite?` Add up to ${MAX_PHOTOS}, such as before and after.`:""}</span>`; return; }
   g.innerHTML=PH.list.map((ph,i)=>`<button type="button" class="ph-tile" data-i="${i}" title="${esc(ph.caption||"")}"><img src="${ph.thumb||ph.data}" alt="${esc(ph.caption||"Project photo")}" loading="lazy"></button>`).join("")+busy;
   g.querySelectorAll(".ph-tile[data-i]").forEach(b=>b.onclick=()=>{ PH.open=PH.list[+b.dataset.i]._id; renderLightbox(); });
 }
@@ -833,7 +847,10 @@ function shrink(img,maxSide,quality){
   return { url:c.toDataURL("image/jpeg",quality), w:c.width, h:c.height };
 }
 async function addPhotos(files){
-  const pid=S.sel; if(!pid||!files.length) return;
+  const pid=S.sel; if(!pid||!files.length||PH.busy) return;
+  const slots=freeSlots();
+  if(!slots.length){ toast(`Each project can have ${MAX_PHOTOS} photos. Delete one to add another.`); return; }
+  const skippedN=Math.max(0,files.length-slots.length); files=files.slice(0,slots.length);
   let ok=0; const bad=[];
   PH.busy=files.length; renderPhotos();
   for(const fl of files){
@@ -846,14 +863,15 @@ async function addPhotos(files){
       while(full.url.length>850000 && side>600){ side=Math.round(side*.8); full=shrink(img,side,q); }
       const thumb=shrink(img,360,.7);
       const taken=fl.lastModified?new Date(fl.lastModified).toISOString():new Date().toISOString();
-      await setDoc(doc(collection(db,"projects",pid,"photos")),{ data:full.url, thumb:thumb.url, w:full.w, h:full.h, caption:"", fileName:fl.name, takenAt:taken, uploadedAt:new Date().toISOString(), uploadedBy:S.user?.email||"" });
+      await setDoc(doc(db,"projects",pid,"photos",slots[ok]),{ data:full.url, thumb:thumb.url, w:full.w, h:full.h, caption:"", fileName:fl.name, takenAt:taken, uploadedAt:new Date().toISOString(), uploadedBy:S.user?.email||"" });
       ok++;
     }catch(e){ bad.push(fl.name); if(e.code==="permission-denied"){ toast(permMsg(e)); break; } }
     PH.busy--; renderPhotos();
   }
   PH.busy=0; renderPhotos();
-  if(bad.length) toast(`${ok} added. Couldn’t read ${bad.length} file${bad.length>1?"s":""} (${bad.slice(0,2).join(", ")}${bad.length>2?"…":""}). iPhone HEIC photos may need to be saved as JPEG first.`);
-  else if(ok) toast(`${ok} photo${ok>1?"s":""} added`);
+  const extra=skippedN?` Only ${MAX_PHOTOS} photos are allowed per project, so ${skippedN} ${skippedN>1?"were":"was"} not added.`:"";
+  if(bad.length) toast(`${ok} added. Couldn’t read ${bad.length} file${bad.length>1?"s":""} (${bad.slice(0,2).join(", ")}${bad.length>2?"…":""}). iPhone HEIC photos may need to be saved as JPEG first.${extra}`);
+  else if(ok) toast(`${ok} photo${ok>1?"s":""} added.${extra}`);
 }
 function renderLightbox(){
   const lb=$("lightbox"), i=PH.list.findIndex(x=>x._id===PH.open);
