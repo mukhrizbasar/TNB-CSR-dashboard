@@ -39,7 +39,7 @@ If you leave `googleMapsKey` empty, the app uses a free OpenStreetMap street map
 3. **Settings > Pages**: Source **Deploy from a branch**, branch `main`, folder `/ (root)`. The site appears at `https://YOUR-GITHUB-NAME.github.io/tnb-csr-dashboard/` after a minute.
 4. Back in Firebase: **Authentication > Settings > Authorized domains > Add domain**: `YOUR-GITHUB-NAME.github.io`.
 
-**Renaming the site later.** The web address follows the repository name. To change it, rename the repository in GitHub **Settings > General > Repository name** (this dashboard is at `https://mukhrizbasar.github.io/tnb-csr-dashboard/`). The old address stops working; GitHub does not redirect Pages sites, so share the new link. Firebase needs no change, because the domain `YOUR-GITHUB-NAME.github.io` stays the same. The Firebase project ID in `config.js` (`csr-solar-dashboard`) is fixed by Google and can't be renamed; it is never shown to users.
+**Renaming the site later.** The web address follows the repository name. To change it, rename the repository in GitHub **Settings > General > Repository name** (this dashboard is at `https://mukhrizbasar.github.io/TNB-CSR-dashboard/`). The old address stops working; GitHub does not redirect Pages sites, so share the new link. Firebase needs no change, because the domain `YOUR-GITHUB-NAME.github.io` stays the same. The Firebase project ID in `config.js` (`csr-solar-dashboard`) is fixed by Google and can't be renamed; it is never shown to users.
 
 ## 4. First run
 Open the site, click **Sign in with Google** with an editor email. The list will be empty with an **Import projects file** button. Click it and choose `seed-projects.json` (sent to you separately, not kept in GitHub). Do this once.
