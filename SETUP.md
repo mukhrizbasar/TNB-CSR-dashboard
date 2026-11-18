@@ -58,9 +58,9 @@ Open the site, click **Sign in with Google** with an editor email. The list will
 - Imported projects have no map pin yet. Open each one, click **Edit project**, then **Pick on map**.
 
 ## Project photos
-- Open a project and click **+ Add photos**. You can pick several at once, and on a phone you can take them with the camera. Click a photo to view it full size, add a caption, or delete it.
+- Open a project and click **+ Add photos**. Each project can have **2 photos** (for example before and after). Once it has 2, the button is greyed out until you delete one. You can pick both at once, and on a phone you can take them with the camera. Click a photo to view it full size, add a caption, or delete it.
 - Photos are shrunk automatically when uploaded: the longest side becomes 1600 px (1000 px at least) and the file is compressed to about 300 KB, which still shows site details clearly. You can upload phone photos of any size. They are stored in Firestore, so no paid Firebase Storage plan is needed. The free 1 GB holds about 3,000 photos.
-- **One-time step:** photos need the updated rules. In Firebase, go to **Firestore > Rules**, replace everything with the contents of `firestore.rules`, and click **Publish**.
+- **One-time step:** photos need the updated rules, which also enforce the 2-photo limit (re-publish them after this update). In Firebase, go to **Firestore > Rules**, replace everything with the contents of `firestore.rules`, and click **Publish**.
 - iPhone photos in HEIC format may not open in Chrome or Windows. Set **iPhone Settings > Camera > Formats > Most Compatible**, or send them as JPEG.
 
 ## Pillars and programmes
@@ -68,7 +68,7 @@ Open the site, click **Sign in with Google** with an editor email. The list will
 |---|---|---|
 | Environment | Solar Rooftop & Streetlight, Tree for a Tree, Other environment projects | a project |
 | Economic Social | Sumbangan Kenderaan Terpakai, Perumahan Mesra Rakyat (PMR) | a vehicle donation, a house |
-| Education | Ceria Ke Sekolah, Sekolah Angkat JEK | a school (Ceria), a contribution to an adopted school (JEK) |
+| Education | Ceria Ke Sekolah (CKS), Sekolah Angkat JEK | a voucher handover in a YB's area (CKS), a contribution to an adopted school (JEK) |
 | Wakalah | Projek Baiti Jannati (PBJ) | a house |
 | Sports | Sekolah Hoki Angkat TNB | a school |
 
@@ -95,3 +95,10 @@ An editor clicks **Import list** and picks `jek-seed.json` (sent separately). It
 - Each contribution keeps its JEK member, position, school and category (ED, ES, SP, ENV).
 - Contributions are set to **Approved** and **Not Paid**. Update them when they are paid or done.
 - School pins are placed at the town, not the school.
+
+## Importing the CKS 2027 list (one time)
+An editor clicks **Import list** and picks `cks-seed.json` (sent separately). It holds 91 handovers from the "Cadangan Tarikh & Lokasi Pelaksanaan CKS 2027" sheet, under year **2027**:
+- 10,050 pupils and RM 1,005,000 in total (RM100 voucher each), matching the sheet's JUMLAH row.
+- Each handover keeps its YB and position, area, handover date and venue, method, vendor and the SharePoint link to photos and the recipient list.
+- Status: **Completed** where the sheet says Selesai, **Date confirmed** where a handover date is set, otherwise **Planning**. Vague dates such as "Disember 2026" and times go into Remarks.
+- Pins are placed at the area (Parlimen / DUN), not the venue.
