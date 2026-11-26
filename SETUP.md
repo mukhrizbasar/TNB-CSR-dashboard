@@ -69,7 +69,7 @@ Open the site, click **Sign in with Google** with an editor email. The list will
 | Pillar | Programmes | What each record is |
 |---|---|---|
 | Environment | Solar Rooftop & Streetlight, Tree for a Tree, Other environment projects | a project |
-| Economic Social | Sumbangan Kenderaan Terpakai, Perumahan Mesra Rakyat (PMR) | a vehicle donation, a house |
+| Economic Social | Sumbangan Kenderaan Terpakai, Projek Mesra Rakyat (PMR) | a vehicle donation, a house |
 | Education | Ceria Ke Sekolah (CKS), Sekolah Angkat JEK | a voucher handover in a YB's area (CKS), a contribution to an adopted school (JEK) |
 | Wakalah | Projek Baiti Jannati (PBJ) | a house |
 | Sports | Sekolah Hoki Angkat TNB | a school |
@@ -77,9 +77,10 @@ Open the site, click **Sign in with Google** with an editor email. The list will
 Each programme has its own form fields and statuses:
 - Environment: Site Visit, Pending Proposal, Pending Approval Memo, Approved, Ongoing, Completed.
 - PBJ and PMR: Application received, Approved, Vendor appointed, Under construction, Completed, Rejected.
+- Sumbangan Kenderaan Terpakai: Application received, Approved, Completed (handed over), Rejected. It has no payment tracking, so its view shows a Rejected card instead of Paid.
 - The others: Planning, Approved, Ongoing, Completed.
 
-The **Overview** and pillar views combine programmes, so they group statuses into stages: In pipeline, Approved, In progress, Completed (plus Rejected for PBJ and PMR).
+The **Overview** and pillar views combine programmes, so they group statuses into stages: In pipeline, Approved, In progress, Completed (plus Rejected for PBJ, PMR and vehicle donations).
 
 To add a record, open the programme and click **+ Add** (or pick the programme in the form). To bring in a list, open the programme first, then **Import list** with an Excel file that uses the same column names as that programme's export.
 
@@ -104,3 +105,18 @@ An editor clicks **Import list** and picks `cks-seed.json` (sent separately). It
 - Each handover keeps its YB and position, area, handover date and venue, method, vendor and the SharePoint link to photos and the recipient list.
 - Status: **Completed** where the sheet says Selesai, **Date confirmed** where a handover date is set, otherwise **Planning**. Vague dates such as "Disember 2026" and times go into Remarks.
 - Pins are placed at the area (Parlimen / DUN), not the venue.
+
+## Importing the PMR master data (one time)
+An editor clicks **Import list** and picks `pmr-seed.json` (sent separately). It holds 32 houses from "Master Data Projek Mesra Rakyat PMR":
+- FY2024: 8 houses, RM 552,693. FY2025: 10 houses, RM 740,250.70, plus 1 cancelled house (status Rejected). FY2026: 13 houses, RM 1,029,970.
+- IC numbers were left out on purpose. House pins are at the town, not the house.
+- The 2012 to 2023 totals in the "PMR" sheet are yearly sums with no house list, so they are not imported. The "PMR (2027)" sheet is an unfilled copy of 2026 and is skipped.
+- The one PMR house already imported from `pbj-pmr-seed.json` stays as it is. Importing twice is safe.
+
+## Importing the Sumbangan Kenderaan Terpakai list (one time)
+An editor clicks **Import list** and picks `kenderaan-seed.json` (sent separately). It holds 310 vehicle donations:
+- 161 from the "03. List Penerima Manfaat" sheet: 137 handed over (status Completed, 2019 to 2026) and 24 approved under memo E33291 on 5 Nov 2026, waiting for handover.
+- 149 open applications from "02.Masterlist Latest" (142 Application received, 7 Rejected). Applications already approved under E33291 are merged into their approved record instead of being listed twice.
+- Year is the approval year for approved or handed-over vehicles, and the application year for open applications.
+- Repair cost is filled when the sheet gives a per-vehicle cost. Where it only gives the whole memo's total, the total goes into Remarks.
+- PIC phone numbers and emails were left out. Pins are at the town or mukim, not the exact mosque.
