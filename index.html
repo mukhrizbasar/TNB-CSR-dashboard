@@ -114,7 +114,9 @@ header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:spac
 .kpi .l{font-size:.75rem;color:var(--muted);font-weight:600}
 .kpi .v{font-family:var(--f-mono);font-size:1.5rem;font-weight:500;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;line-height:1.2}
 .kpi .h{font-size:.75rem;color:var(--muted)}
-@media (max-width:900px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.kpis-solar{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:-6px}
+.kpis-solar .l::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--s-done);margin-right:6px;vertical-align:1px}
+@media (max-width:900px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.kpis-solar{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:480px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 
 .pipe{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:10px}
@@ -274,6 +276,7 @@ form.edit textarea{min-height:64px;resize:vertical}
   <div class="active-filters" id="activeFilters" hidden></div>
 
   <section class="kpis" id="kpis" aria-label="Summary"></section>
+  <section class="kpis kpis-solar" id="solarKpis" aria-label="Solar totals" hidden></section>
 
   <section class="pipe" aria-label="Project status">
     <h2 id="pipeTitle">Status pipeline</h2>

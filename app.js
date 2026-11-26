@@ -364,12 +364,30 @@ function renderKpis(rows){
     dimRelevant("payment") ? {l:"Paid",v:`${paid}/${rp.length}`,h:null,d:"payment",vals:["Paid"],extra:{d:"payment",vals:["Not Paid"],t:`${rp.length-paid} not paid`}}
       : {l:"Rejected",v:rej,h:rs.length?Math.round(rej/rs.length*100)+"% of "+u[1]:"",d:"stage",vals:["rejected"]},
   ];
+  renderSolarKpis(rows);
   $("kpis").innerHTML=k.map((c,i)=>{
     const click=c.act||c.vals, pressed=c.vals&&on(c.d,c.vals);
     const ex=c.extra?`<button type="button" class="kpi-sub${on(c.extra.d,c.extra.vals)?" on":""}" data-kd="${c.extra.d}" data-kv="${c.extra.vals.join("|")}" aria-pressed="${on(c.extra.d,c.extra.vals)}">${esc(c.extra.t)}</button>`:"";
     const h=c.h!=null?`<span class="h">${esc(c.h)}</span>`:"";
     return `<div class="kpi${click?" click":""}${pressed?" on":""}${c.vals&&dimOn(c.d)&&!pressed?" off":""}" ${click?`role="button" tabindex="0" aria-pressed="${!!pressed}" title="${esc(c.tip||"Click to filter. Click again to clear.")}" ${c.act?'data-kclear="1"':`data-kd="${c.d}" data-kv="${c.vals.join("|")}"`}`:""}><span class="l">${esc(c.l)}</span><span class="v" title="${esc(c.v)}">${esc(c.v)}</span>${h}${ex}</div>`;
   }).join("");
+}
+/* Solar totals for management: shown whenever the view includes solar projects (Overview, Environment, Solar) */
+function renderSolarKpis(rows){
+  const box=$("solarKpis"), sr=rows.filter(p=>programmeOf(p)==="solar");
+  if(!viewProgs().some(p=>p.id==="solar") || !sr.length){ box.hidden=true; box.innerHTML=""; return; }
+  const rf=sr.filter(p=>p.type==="Solar Rooftop"||p.type==="Rooftop + Streetlight"), sl=sr.filter(p=>p.type==="Solar Streetlight"||p.type==="Rooftop + Streetlight");
+  const done=p=>p.status==="Completed", n=v=>(+v||0).toLocaleString("en-MY",{maximumFractionDigits:1});
+  const kwp=sum(rf,"kwp"), kwpDone=sum(rf.filter(done),"kwp"), noKwp=rf.filter(p=>!p.kwp).length;
+  const units=sum(sl,"units"), unitsDone=sum(sl.filter(done),"units"), noUnits=sl.filter(p=>!p.units).length;
+  const cards=[
+    {l:"Solar capacity (kWp)",v:n(kwp)+" kWp",h:`${rf.length} rooftop project${rf.length===1?"":"s"}${noKwp?` · ${noKwp} without kWp yet`:""}`},
+    {l:"Capacity completed",v:n(kwpDone)+" kWp",h:kwp?Math.round(kwpDone/kwp*100)+"% of total kWp":"—"},
+    {l:"Solar streetlight poles",v:n(units)+" units",h:`${sl.length} streetlight project${sl.length===1?"":"s"}${noUnits?` · ${noUnits} without a unit count`:""}`},
+    {l:"Poles installed",v:n(unitsDone)+" units",h:units?Math.round(unitsDone/units*100)+"% of total poles":"—"},
+  ];
+  box.hidden=false;
+  box.innerHTML=cards.map(c=>`<div class="kpi"><span class="l">${esc(c.l)}</span><span class="v" title="${esc(c.v)}">${esc(c.v)}</span><span class="h">${esc(c.h)}</span></div>`).join("");
 }
 function renderPipe(){
   const sp=single(), d=sp?"status":"stage", rows=rowsExcept(d), n=rows.length||1;
