@@ -7,7 +7,6 @@ const SOLAR_ST = ["Site Visit","Pending Proposal","Pending Approval Memo","Appro
 const HOUSE_ST = ["Application received","Approved","Vendor appointed","Under construction","Completed","Rejected"];
 const GEN_ST = ["Planning","Approved","Ongoing","Completed"];
 const CKS_ST = ["Planning","Date confirmed","Completed"];
-const VEH_ST = ["Application received","Approved","Completed","Rejected"];
 const SVAR = {"Site Visit":"--s-visit","Pending Proposal":"--s-proposal","Pending Approval Memo":"--s-memo","Approved":"--s-approved","Ongoing":"--s-ongoing","Completed":"--s-done",
   "Application received":"--s-proposal","Vendor appointed":"--s-vendor","Under construction":"--s-ongoing","Planning":"--s-proposal","Date confirmed":"--s-approved","Rejected":"--s-rejected"};
 const STAGES = [["pipeline","In pipeline","--s-proposal"],["approved","Approved","--s-approved"],["progress","In progress","--s-ongoing"],["done","Completed","--s-done"],["rejected","Rejected","--s-rejected"]];
@@ -15,7 +14,6 @@ const STAGE_OF = {"Site Visit":"pipeline","Pending Proposal":"pipeline","Pending
   "Approved":"approved","Vendor appointed":"approved","Date confirmed":"approved","Ongoing":"progress","Under construction":"progress","Completed":"done","Rejected":"rejected"};
 const TYPES = ["Solar Rooftop","Solar Streetlight","Rooftop + Streetlight","Other"];
 const STATES = ["Johor","Kedah","Kelantan","Malacca","Negeri Sembilan","Pahang","Perak","Perlis","Penang","Sabah","Sarawak","Selangor","Terengganu","W.P. Kuala Lumpur","W.P. Labuan","W.P. Putrajaya","Nationwide"];
-const VEH_TYPES = ["Van Jenazah","Van Penumpang","4x4","Ambulans","Van Serbaguna","Bas Mini","Van Sekolah","Van Perpustakaan","MPV","Kereta (Sedan)","Lori","Bot","Lain-lain"];
 const COMPONENTS = ["Komuniti Lestari","Tree for a Tree","Pulau Tenaga Hijau","Biodiversity","Firefly Conservation","Extinction Species"];
 const YEARS = [2023,2024,2025,2026,2027,2028,2029,2030];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -32,7 +30,7 @@ const HOUSE_FIELDS=[f("name","Recipient","text",{full:1,req:1}),STATUS,STATE,DIS
   f("agency","Applying agency"),f("fund","Fund (DANA)","sel",{opts:["Wakalah","CSR"]}),f("appDate","Memo / application date","date"),f("memoRef","Approval reference"),
   f("amountRequested","Amount requested (RM)","money"),f("value","Approved amount (RM)","money"),f("vendor","Vendor"),f("contractValue","Contract value (RM)","money"),
   f("appointedDate","Vendor appointed","date"),f("startDate","Construction start","date"),f("endDate","Construction end","date"),f("progress","Build progress (%)","pct"),
-  f("handoverDate","Handover date","date"),PAYMENT,f("paymentDate","Payment date","date"),f("nposNo","NPOS payment no."),
+  PAYMENT,f("paymentDate","Payment date","date"),
   f("docs","Documents received","checks",{full:1,keys:[["photo","House photo"],["asnafLetter","Asnaf letter"],["eKasih","eKasih"],["landTitle","Land title / grant"]]}),
   f("description","Background","area",{full:1}),REMARKS];
 
@@ -47,13 +45,10 @@ const PROGRAMMES = [
   { id:"env-other", pillar:"env", name:"Other environment projects", short:"Other", unit:["project","projects"], statuses:SOLAR_ST, valueLabel:"Project value", fixed:{type:"Other"},
     blurb:"Biodiversity, firefly, Pulau Tenaga Hijau and other environment projects.",
     fields:[f("name","Project name","text",{full:1,req:1}),f("component","Component","sel",{opts:COMPONENTS}),STATUS,STATE,YEAR,f("value","Project value (RM)","money"),...ENV_TAIL] },
-  { id:"vehicle", pillar:"eco", name:"Sumbangan Kenderaan Terpakai", short:"Kenderaan Terpakai", unit:["donation","donations"], statuses:VEH_ST, valueLabel:"Repair cost",
-    blurb:"Used TNB vehicles (van jenazah, passenger vans, 4x4 and more) repaired and donated to mosques and community organisations.",
-    fields:[f("name","Recipient organisation","text",{full:1,req:1}),f("recipient","Recipient details (as written in the application)","text",{full:1}),
-      f("category","Category","sel",{opts:["High priority","Pejabat Negeri","Standard"]}),STATUS,STATE,DISTRICT,YEAR,f("address","Address","area",{full:1}),
-      f("vehicleType","Vehicle type","sel",{opts:VEH_TYPES}),f("vehicleModel","Vehicle model"),f("plate","Registration no."),f("vehicles","Number of vehicles","num"),
-      f("value","Repair cost (RM)","money"),f("appDate","Application received","date"),f("memoRef","Approval memo"),f("memoDate","Memo date","date"),
-      f("handoverDate","Handover date","date"),REMARKS] },
+  { id:"vehicle", pillar:"eco", name:"Sumbangan Kenderaan Terpakai", short:"Kenderaan Terpakai", unit:["donation","donations"], statuses:GEN_ST, valueLabel:"Value",
+    blurb:"Used TNB vehicles donated to community organisations.",
+    fields:[f("name","Donation name","text",{full:1,req:1}),f("recipient","Recipient organisation","text",{full:1}),STATUS,STATE,DISTRICT,YEAR,
+      f("vehicleType","Vehicle type"),f("vehicles","Number of vehicles","num"),f("value","Value (RM)","money"),f("appDate","Request received","date"),f("handoverDate","Handover date","date"),PAYMENT,REMARKS] },
   { id:"ceria", pillar:"edu", name:"Ceria Ke Sekolah (CKS)", short:"CKS", unit:["handover","handovers"], statuses:CKS_ST, valueLabel:"Contribution",
     blurb:"RM100 school vouchers for pupils from low-income families, handed over in each YB's area.",
     fields:[f("name","Handover name","text",{full:1,req:1}),f("yb","YB","text",{full:1}),f("position","Position","text",{full:1}),STATUS,STATE,f("district","Area (Parlimen / DUN)"),YEAR,
@@ -67,8 +62,8 @@ const PROGRAMMES = [
       f("value","Contribution (RM)","money"),f("students","Students reached","num"),f("appDate","Request received","date"),f("completionDate","Completion date","date"),PAYMENT,REMARKS] },
   { id:"pbj", pillar:"wakalah", name:"Projek Baiti Jannati (PBJ)", short:"PBJ", unit:["house","houses"], statuses:HOUSE_ST, valueLabel:"Approved amount",
     blurb:"Houses built or repaired for asnaf families.", fields:HOUSE_FIELDS },
-  { id:"pmr", pillar:"eco", name:"Projek Mesra Rakyat (PMR)", short:"PMR", unit:["house","houses"], statuses:HOUSE_ST, valueLabel:"Approved amount",
-    blurb:"Houses repaired or rebuilt for low-income families, with SSA Negeri, DBKL, YDSM and other partners.", fields:HOUSE_FIELDS },
+  { id:"pmr", pillar:"eco", name:"Perumahan Mesra Rakyat (PMR)", short:"PMR", unit:["house","houses"], statuses:HOUSE_ST, valueLabel:"Approved amount",
+    blurb:"Affordable homes under the Perumahan Mesra Rakyat programme.", fields:HOUSE_FIELDS },
   { id:"hoki", pillar:"sports", name:"Sekolah Hoki Angkat TNB", short:"Sekolah Hoki Angkat", unit:["school","schools"], statuses:GEN_ST, valueLabel:"Value",
     blurb:"Schools adopted for TNB's hockey development programme.",
     fields:[...SCHOOL_HEAD("Programme name"),f("players","Players","num"),f("coach","Coach"),f("value","Value (RM)","money"),f("appDate","Request received","date"),f("completionDate","Completion date","date"),PAYMENT,REMARKS] },
@@ -83,7 +78,6 @@ const PH={ for:null, unsub:null, list:[], loading:false, open:null, busy:0 };
 try{ const v=JSON.parse(localStorage.getItem("csr-view")||"{}"); if(v.pillar!=null) S.pillar=v.pillar; if(v.prog!=null) S.prog=v.prog; if(v.type!=null) S.type=v.type; const y=localStorage.getItem("csr-year"); if(y!==null) S.year=y; }catch(e){}
 if(S.prog && !PROG[S.prog]) S.prog=""; if(S.pillar && !PILLAR_NAME[S.pillar]) S.pillar="";
 const saveView=()=>{ try{ localStorage.setItem("csr-view",JSON.stringify({pillar:S.pillar,prog:S.prog,type:S.type})); }catch(e){} };
-const hasPay = p => progOf(p).fields.some(x=>x.k==="payment");
 const projYear = p => p.year ? +p.year : (p.appDate ? +String(p.appDate).slice(0,4) : null);
 
 const $ = id => document.getElementById(id);
@@ -110,7 +104,7 @@ function baseRows(){
   const q=S.q.trim().toLowerCase(), ids=new Set(viewProgs().map(p=>p.id));
   return [...S.projects.values()].filter(p=>{
     if(!ids.has(programmeOf(p)) || !typeMatch(p) || !inYear(p)) return false;
-    if(q && ![p.name,p.remarks,p.state,p.district,p.recipient,p.agency,p.school,p.vendor,p.address,p.component,p.yb,p.member,p.venue,p.vehicleType,p.plate,p.recipient].join(" ").toLowerCase().includes(q)) return false;
+    if(q && ![p.name,p.remarks,p.state,p.district,p.recipient,p.agency,p.school,p.vendor,p.address,p.component,p.yb,p.member,p.venue].join(" ").toLowerCase().includes(q)) return false;
     return true;
   });
 }
@@ -134,11 +128,10 @@ const DIMS={
   yb:{label:"YB",get:p=>p.yb||NR,field:"yb"},
   method:{label:"Method",get:p=>p.method||NR,field:"method"},
   category:{label:"Category",get:p=>p.category||NR,field:"category"},
-  vehicleType:{label:"Vehicle type",get:p=>p.vehicleType||NR,field:"vehicleType"},
   partner:{label:"Partner",get:p=>p.partner||NR,field:"partner"},
   month:{label:"Month",get:p=>p.month||NR,field:"month"},
   year:{label:"Year",get:p=>String(projYear(p)||NR)},
-  payment:{label:"Payment",get:p=>p.payment==="Paid"?"Paid":"Not Paid",field:"payment"},
+  payment:{label:"Payment",get:p=>p.payment==="Paid"?"Paid":"Not Paid"},
   invoice:{label:"Invoice",get:p=>p.invoice==="Received"?"Received":"Not Received",field:"invoice"},
   value:{label:"Value",get:p=>p.value?"Has value":"No value yet"},
   pin:{label:"Location",get:p=>p.lat==null?"No pin":p.locVerified?"Exact pin":"Approximate pin"},
@@ -348,7 +341,7 @@ function renderTitle(){
 }
 function renderKpis(rows){
   const sp=single(), u=viewUnit(), U=u[1][0].toUpperCase()+u[1].slice(1);
-  const rs=rowsExcept("stage"), rp=rowsExcept("payment").filter(hasPay), rv=rowsExcept("value");
+  const rs=rowsExcept("stage"), rp=rowsExcept("payment"), rv=rowsExcept("value");
   const val=sum(rows,"value"), noval=rv.filter(p=>!p.value).length, pinned=rows.filter(p=>p.lat!=null).length;
   const st=k=>rs.filter(p=>STAGE_OF[p.status]===k).length;
   const done=st("done"), active=st("approved")+st("progress"), pipe=st("pipeline"), rej=st("rejected");
@@ -360,9 +353,8 @@ function renderKpis(rows){
     {l:sp?sp.valueLabel:"Total value",v:rmShort(val),h:noval?`${noval} without a value yet`:"All valued",d:"value",vals:noval?["No value yet"]:null,tip:"Show only records without a value"},
     {l:"Completed",v:done,h:rs.length?Math.round(done/rs.length*100)+"% of "+u[1]:"",d:"stage",vals:["done"]},
     {l:isHouse?"Under way":"Approved or ongoing",v:active,h:isHouse?`${rs.filter(p=>p.status==="Under construction").length} under construction`:"Approved or in progress",d:"stage",vals:["approved","progress"]},
-    {l:"In pipeline",v:pipe,h:isHouse?"Application received":"Not yet approved",d:"stage",vals:["pipeline"],extra:rej&&dimRelevant("payment")?{d:"stage",vals:["rejected"],t:`${rej} rejected`}:null},
-    dimRelevant("payment") ? {l:"Paid",v:`${paid}/${rp.length}`,h:null,d:"payment",vals:["Paid"],extra:{d:"payment",vals:["Not Paid"],t:`${rp.length-paid} not paid`}}
-      : {l:"Rejected",v:rej,h:rs.length?Math.round(rej/rs.length*100)+"% of "+u[1]:"",d:"stage",vals:["rejected"]},
+    {l:"In pipeline",v:pipe,h:isHouse?"Application received":"Not yet approved",d:"stage",vals:["pipeline"],extra:rej?{d:"stage",vals:["rejected"],t:`${rej} rejected`}:null},
+    {l:"Paid",v:`${paid}/${rp.length}`,h:null,d:"payment",vals:["Paid"],extra:{d:"payment",vals:["Not Paid"],t:`${rp.length-paid} not paid`}},
   ];
   $("kpis").innerHTML=k.map((c,i)=>{
     const click=c.act||c.vals, pressed=c.vals&&on(c.d,c.vals);
@@ -592,12 +584,10 @@ function renderLower(rows){
     $("brkSel").onchange=e=>{ S.brk=e.target.value; render(); };
   }
   let h="";
-  if(dimRelevant("payment")){
-    const rp=rowsExcept("payment").filter(hasPay), np=rp.length, paid=rp.filter(p=>p.payment==="Paid"), paidVal=sum(paid,"value"), tot=sum(rp,"value");
-    h+=`<h2>Payment</h2><div class="bars">`;
-    if(viewProgs().some(p=>p.fields.some(x=>x.k==="invoice"))) { const ri=rowsExcept("invoice"), inv=ri.filter(p=>p.invoice==="Received").length; h+=ratioRow("Invoice received",inv,ri.length,`${inv} / ${ri.length}`,"invoice","Received"); }
-    h+=ratioRow("Paid",paid.length,np,`${paid.length} / ${np}`,"payment","Paid")+ratioRow("Not paid",np-paid.length,np,`${np-paid.length} / ${np}`,"payment","Not Paid",true)+ratioRow("Value paid",paidVal,tot,rmShort(paidVal))+`</div>`;
-  }
+  const rp=rowsExcept("payment"), np=rp.length, paid=rp.filter(p=>p.payment==="Paid"), paidVal=sum(paid,"value"), tot=sum(rp,"value");
+  h+=`<h2>Payment</h2><div class="bars">`;
+  if(viewProgs().some(p=>p.fields.some(x=>x.k==="invoice"))) { const ri=rowsExcept("invoice"), inv=ri.filter(p=>p.invoice==="Received").length; h+=ratioRow("Invoice received",inv,ri.length,`${inv} / ${ri.length}`,"invoice","Received"); }
+  h+=ratioRow("Paid",paid.length,np,`${paid.length} / ${np}`,"payment","Paid")+ratioRow("Not paid",np-paid.length,np,`${np-paid.length} / ${np}`,"payment","Not Paid",true)+ratioRow("Value paid",paidVal,tot,rmShort(paidVal))+`</div>`;
   const ids=new Set(rows.map(programmeOf)), hi=[], notes=[];
   if(ids.has("solar")){
     const sr=rows.filter(p=>programmeOf(p)==="solar");
